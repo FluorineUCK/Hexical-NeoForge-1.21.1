@@ -1,22 +1,27 @@
 package miyucomics.hexical.features.periwinkle
 
-import net.minecraft.item.ArmorItem
-import net.minecraft.item.ArmorMaterial
-import net.minecraft.recipe.Ingredient
-import net.minecraft.sound.SoundEvent
-import net.minecraft.sound.SoundEvents
+import net.minecraft.core.Holder
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.world.item.ArmorItem
+import net.minecraft.world.item.ArmorMaterial
+import net.minecraft.world.item.crafting.Ingredient
 
-class LeiArmorMaterial : ArmorMaterial {
-	override fun getDurability(type: ArmorItem.Type) = 0
-	override fun getProtection(type: ArmorItem.Type) = 0
-	override fun getEnchantability() = 100
-	override fun getEquipSound(): SoundEvent = SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME
-	override fun getRepairIngredient(): Ingredient = Ingredient.EMPTY
-	override fun getName() = "lei"
-	override fun getToughness() = 0f
-	override fun getKnockbackResistance() = 0f
-
-	companion object {
-		val INSTANCE: LeiArmorMaterial = LeiArmorMaterial()
-	}
+object LeiArmorMaterial {
+	/** A direct holder is sufficient because the lei is never serialized as a material value. */
+	@JvmField
+	val INSTANCE: Holder<ArmorMaterial> = Holder.direct(
+		ArmorMaterial(
+			ArmorItem.Type.entries.associateWith { 0 },
+			100,
+			BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.AMETHYST_BLOCK_CHIME),
+			{ Ingredient.EMPTY },
+			// The original 1.20 material name was the unqualified "lei", so its
+			// artwork intentionally lives in assets/minecraft/textures/models/armor.
+			listOf(ArmorMaterial.Layer(ResourceLocation.withDefaultNamespace("lei"))),
+			0f,
+			0f
+		)
+	)
 }

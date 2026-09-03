@@ -1,40 +1,41 @@
 package miyucomics.hexical.features.pedestal
 
-import net.minecraft.client.render.OverlayTexture
-import net.minecraft.client.render.VertexConsumerProvider
-import net.minecraft.client.render.WorldRenderer
-import net.minecraft.client.render.block.entity.BlockEntityRenderer
-import net.minecraft.client.render.block.entity.BlockEntityRendererFactory
-import net.minecraft.client.render.model.json.ModelTransformationMode
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.util.math.RotationAxis
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.random.Random
+import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.LevelRenderer
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider
+import net.minecraft.world.item.ItemDisplayContext
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import com.mojang.math.Axis
+import net.minecraft.world.phys.Vec3
+import net.minecraft.util.RandomSource
 
-class PedestalBlockEntityRenderer(context: BlockEntityRendererFactory.Context) : BlockEntityRenderer<PedestalBlockEntity> {
+class PedestalBlockEntityRenderer(context: BlockEntityRendererProvider.Context) : BlockEntityRenderer<PedestalBlockEntity> {
 	private val itemRenderer = context.itemRenderer
-	private val random = Random.create()
+	private val random = RandomSource.create()
 
-	override fun render(pedestal: PedestalBlockEntity, tickDelta: Float, matrices: MatrixStack, vertices: VertexConsumerProvider, light: Int, overlay: Int) {
+	override fun render(pedestal: PedestalBlockEntity, tickDelta: Float, matrices: PoseStack, vertices: MultiBufferSource, light: Int, overlay: Int) {
 		if (pedestal.heldStack.isEmpty)
 			return
 
-		val time = pedestal.world!!.time + tickDelta
-		val offset = Vec3d.of(pedestal.normalVector).multiply(PedestalBlockEntity.HEIGHT)
-		val light = WorldRenderer.getLightmapCoordinates(pedestal.world, pedestal.pos.add(pedestal.normalVector))
-		random.setSeed((if (pedestal.heldStack.isEmpty) 187 else Item.getRawId(pedestal.heldStack.item) + pedestal.heldStack.damage).toLong())
-		val bakedModel = itemRenderer.getModel(pedestal.heldStack, pedestal.world, null, 0)
-		val hasDepth = bakedModel.hasDepth()
+		val level = pedestal.level ?: return
+		val time = level.gameTime + tickDelta
+		val offset = Vec3.atLowerCornerOf(pedestal.normalVector).scale(PedestalBlockEntity.HEIGHT)
+		val light = LevelRenderer.getLightColor(level, pedestal.blockPos.offset(pedestal.normalVector))
+		random.setSeed((if (pedestal.heldStack.isEmpty) 187 else Item.getId(pedestal.heldStack.item) + pedestal.heldStack.damageValue).toLong())
+		val bakedModel = itemRenderer.getModel(pedestal.heldStack, level, null, 0)
+		val hasDepth = bakedModel.isGui3d()
 		val renderedAmount = getRenderedAmount(pedestal.heldStack)
-		val scaleX = bakedModel.transformation.ground.scale.x()
-		val scaleY = bakedModel.transformation.ground.scale.y()
-		val scaleZ = bakedModel.transformation.ground.scale.z()
+		val scaleX = bakedModel.transforms.ground.scale.x()
+		val scaleY = bakedModel.transforms.ground.scale.y()
+		val scaleZ = bakedModel.transforms.ground.scale.z()
 
-		matrices.push()
+		matrices.pushPose()
 		matrices.translate(offset.x + 0.5, offset.y + 0.35, offset.z + 0.5)
-		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(time * 4))
+		matrices.mulPose(Axis.YP.rotationDegrees(time * 4))
 
 		if (!hasDepth) {
 			val initialOffsetZ = -Z_LAYER_OFFSET * (renderedAmount - 1) * scaleZ / 2f
@@ -42,7 +43,7 @@ class PedestalBlockEntityRenderer(context: BlockEntityRendererFactory.Context) :
 		}
 
 		for (i in 0 until renderedAmount) {
-			matrices.push()
+			matrices.pushPose()
 
 			if (i > 0) {
 				if (hasDepth) {
@@ -57,13 +58,13 @@ class PedestalBlockEntityRenderer(context: BlockEntityRendererFactory.Context) :
 				}
 			}
 
-			itemRenderer.renderItem(pedestal.heldStack, ModelTransformationMode.GROUND, light, OverlayTexture.DEFAULT_UV, matrices, vertices, pedestal.world, 0)
-			matrices.pop()
+			itemRenderer.renderStatic(pedestal.heldStack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY, matrices, vertices, level, 0)
+			matrices.popPose()
 			if (!hasDepth)
 				matrices.translate(0.0f * scaleX, 0.0f * scaleY, Z_LAYER_OFFSET * scaleZ)
 		}
 
-		matrices.pop()
+		matrices.popPose()
 	}
 
 	private fun getRenderedAmount(stack: ItemStack): Int {

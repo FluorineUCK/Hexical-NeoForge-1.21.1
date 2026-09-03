@@ -24,15 +24,6 @@
 		{
 			"type": "patchouli:text",
 			"text": "hexical.page.prestidigitation.2"
-		},
-		{
-			"type": "patchouli:text",
-			"text": "hexical.page.prestidigitation.3"
-		},
-		{
-			"type": "hexical:block",
-			"block": "minecraft:lever",
-			"text": "hexical.page.prestidigitation.lever"
 		}
 	]
 }

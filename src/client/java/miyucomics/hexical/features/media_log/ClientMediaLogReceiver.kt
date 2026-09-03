@@ -1,13 +1,12 @@
 package miyucomics.hexical.features.media_log
 
 import miyucomics.hexical.ClientStorage
-import miyucomics.hexical.misc.InitHook
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+import miyucomics.hexical.network.MediaLogPayload
+import net.minecraft.client.Minecraft
 
-object ClientMediaLogReceiver : InitHook() {
-	override fun init() {
-		ClientPlayNetworking.registerGlobalReceiver(MediaLogField.MEDIA_LOG_CHANNEL) { _, _, packet, _ ->
-			ClientStorage.mediaLog = MediaLogField().also { it.fromNbt(packet.readNbt()!!) }
-		}
+object ClientMediaLogReceiver {
+	fun handle(payload: MediaLogPayload) {
+		val provider = Minecraft.getInstance().level?.registryAccess() ?: return
+		ClientStorage.mediaLog = MediaLogField().also { it.fromNbt(payload.data, provider) }
 	}
 }

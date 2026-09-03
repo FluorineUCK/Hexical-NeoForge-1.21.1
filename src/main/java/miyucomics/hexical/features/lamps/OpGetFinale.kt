@@ -10,6 +10,6 @@ object OpGetFinale : ConstMediaAction {
 	override fun execute(args: List<Iota>, env: CastingEnvironment): List<Iota> {
 		if (env !is LampCastEnv)
 			throw NeedsLampMishap()
-		return env.finale.asActionResult
+		return env.getFinale().asActionResult
 	}
 }

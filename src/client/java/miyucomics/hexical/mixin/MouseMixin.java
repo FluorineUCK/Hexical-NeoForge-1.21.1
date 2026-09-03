@@ -3,16 +3,14 @@ package miyucomics.hexical.mixin;
 import at.petrak.hexcasting.common.lib.HexSounds;
 import kotlin.Pair;
 import miyucomics.hexical.features.charms.CharmUtilities;
-import miyucomics.hexical.features.charms.ServerCharmedUseReceiver;
 import miyucomics.hexical.features.curios.CurioItem;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.Mouse;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.util.Hand;
+import miyucomics.hexical.network.CharmedItemUsePayload;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.MouseHandler;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,14 +19,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(value = Mouse.class)
+@Mixin(value = MouseHandler.class)
 public class MouseMixin {
-	@Shadow @Final private MinecraftClient client;
+	@Shadow @Final private Minecraft minecraft;
 
-	@Inject(method = "onMouseButton", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
 	private void onMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
-		if (client.currentScreen != null || client.getOverlay() != null) return;
-		if (client.player == null || client.player.isSpectator()) return;
+		if (minecraft.screen != null || minecraft.getOverlay() != null) return;
+		if (minecraft.player == null || minecraft.player.isSpectator()) return;
 		if (action != GLFW.GLFW_PRESS) return;
 
 		int buttonPressed = switch (button) {
@@ -46,19 +44,16 @@ public class MouseMixin {
 		if (buttonPressed == -1)
 			return;
 
-		for (Pair<Hand, ItemStack> pair : CharmUtilities.getUseableCharmedItems(client.player)) {
-			if (!CharmUtilities.shouldIntercept(pair.getSecond(), buttonPressed, client.player.isSneaking()))
+		for (Pair<InteractionHand, ItemStack> pair : CharmUtilities.getUseableCharmedItems(minecraft.player)) {
+			if (!CharmUtilities.shouldIntercept(pair.getSecond(), buttonPressed, minecraft.player.isShiftKeyDown()))
 				continue;
 
 			if (!(pair.getSecond().getItem() instanceof CurioItem)) {
-				client.player.swingHand(pair.getFirst());
-				client.player.clientWorld.playSound(null, client.player.getX(), client.player.getY(), client.player.getZ(), HexSounds.CAST_HERMES, SoundCategory.MASTER, 0.25f, 1f);
+				minecraft.player.swing(pair.getFirst());
+				minecraft.player.clientLevel.playSound(null, minecraft.player.getX(), minecraft.player.getY(), minecraft.player.getZ(), HexSounds.CAST_HERMES.value(), SoundSource.MASTER, 0.25f, 1f);
 			}
 
-			PacketByteBuf buf = PacketByteBufs.create();
-			buf.writeInt(buttonPressed);
-			buf.writeInt(pair.getFirst().ordinal());
-			ClientPlayNetworking.send(ServerCharmedUseReceiver.CHARMED_ITEM_USE_CHANNEL, buf);
+			PacketDistributor.sendToServer(new CharmedItemUsePayload(buttonPressed, pair.getFirst().ordinal()));
 			ci.cancel();
 			return;
 		}

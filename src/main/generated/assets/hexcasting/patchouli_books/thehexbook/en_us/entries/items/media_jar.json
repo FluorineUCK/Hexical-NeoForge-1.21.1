@@ -1,7 +1,7 @@
 {
   "advancement": "hexcasting:root",
   "category": "hexcasting:items",
-  "icon": "hexical:media_jar{BlockEntityTag:{media:6400000,id:'hexical:media_jar'}}",
+  "icon": "hexical:media_jar",
   "name": "hexical.page.media_jar.title",
   "pages": [
     {
@@ -19,9 +19,9 @@
     },
     {
       "type": "hexcasting:transmuting",
-      "recipe": "hexical:transmuting/enchant_apple",
-      "text": "hexical.recipe.enchant_apple.text",
-      "title": "hexical.recipe.enchant_apple.header"
+      "recipe": "hexical:transmuting/alchemists_take_this",
+      "text": "hexical.recipe.alchemists_take_this.text",
+      "title": "hexical.recipe.alchemists_take_this.header"
     },
     {
       "type": "hexcasting:transmuting",

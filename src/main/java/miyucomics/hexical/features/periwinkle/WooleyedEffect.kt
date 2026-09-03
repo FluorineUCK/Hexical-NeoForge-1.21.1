@@ -2,32 +2,50 @@ package miyucomics.hexical.features.periwinkle
 
 import miyucomics.hexical.HexicalMain
 import miyucomics.hexical.inits.HexicalBlocks
-import miyucomics.hexical.misc.InitHook
-import net.minecraft.entity.effect.StatusEffect
-import net.minecraft.entity.effect.StatusEffectCategory
-import net.minecraft.entity.effect.StatusEffectInstance
-import net.minecraft.item.Items
-import net.minecraft.potion.Potion
-import net.minecraft.potion.Potions
-import net.minecraft.recipe.BrewingRecipeRegistry
-import net.minecraft.registry.Registries
-import net.minecraft.registry.Registry
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
+import net.minecraft.core.Holder
+import net.minecraft.world.effect.MobEffect
+import net.minecraft.world.effect.MobEffectCategory
+import net.minecraft.world.effect.MobEffectInstance
+import net.minecraft.world.item.Items
+import net.minecraft.world.item.alchemy.Potion
+import net.minecraft.world.item.alchemy.Potions
+import net.neoforged.neoforge.event.brewing.RegisterBrewingRecipesEvent
+import net.neoforged.neoforge.registries.RegisterEvent
 
-object WooleyedEffectRegister : InitHook() {
-	private val WOOLEYED_POTION = Potion(StatusEffectInstance(WooleyedEffect, 12000, 0))
-	private val LONG_WOOLEYED_POTION = Potion(StatusEffectInstance(WooleyedEffect, 48000, 0))
-	private val STRONG_WOOLEYED_POTION = Potion(StatusEffectInstance(WooleyedEffect, 6000, 1))
+object WooleyedEffectRegister {
+	private lateinit var WOOLEYED_POTION: Potion
+	private lateinit var LONG_WOOLEYED_POTION: Potion
+	private lateinit var STRONG_WOOLEYED_POTION: Potion
 
-	override fun init() {
-		Registry.register(Registries.STATUS_EFFECT, HexicalMain.id("wooleyed"), WooleyedEffect)
-		Registry.registerReference(Registries.POTION, HexicalMain.id("wooleyed"), WOOLEYED_POTION)
-		Registry.registerReference(Registries.POTION, HexicalMain.id("long_wooleyed"), LONG_WOOLEYED_POTION)
-		Registry.registerReference(Registries.POTION, HexicalMain.id("strong_wooleyed"), STRONG_WOOLEYED_POTION)
+	@JvmStatic
+	fun effectHolder(): Holder<MobEffect> = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(WooleyedEffect)
 
-		BrewingRecipeRegistry.registerPotionRecipe(Potions.AWKWARD, HexicalBlocks.PERIWINKLE_FLOWER_ITEM, WOOLEYED_POTION)
-		BrewingRecipeRegistry.registerPotionRecipe(WOOLEYED_POTION, Items.REDSTONE, LONG_WOOLEYED_POTION)
-		BrewingRecipeRegistry.registerPotionRecipe(WOOLEYED_POTION, Items.GLOWSTONE_DUST, STRONG_WOOLEYED_POTION)
+	fun register(event: RegisterEvent) {
+		when (event.registryKey) {
+			Registries.MOB_EFFECT ->
+				event.register(Registries.MOB_EFFECT, HexicalMain.id("wooleyed")) { WooleyedEffect }
+			Registries.POTION -> {
+				val effect = effectHolder()
+				WOOLEYED_POTION = Potion(MobEffectInstance(effect, 12000, 0))
+				LONG_WOOLEYED_POTION = Potion(MobEffectInstance(effect, 48000, 0))
+				STRONG_WOOLEYED_POTION = Potion(MobEffectInstance(effect, 6000, 1))
+				event.register(Registries.POTION, HexicalMain.id("wooleyed")) { WOOLEYED_POTION }
+				event.register(Registries.POTION, HexicalMain.id("long_wooleyed")) { LONG_WOOLEYED_POTION }
+				event.register(Registries.POTION, HexicalMain.id("strong_wooleyed")) { STRONG_WOOLEYED_POTION }
+			}
+		}
+	}
+
+	fun registerBrewingRecipes(event: RegisterBrewingRecipesEvent) {
+		val normal = BuiltInRegistries.POTION.wrapAsHolder(WOOLEYED_POTION)
+		val long = BuiltInRegistries.POTION.wrapAsHolder(LONG_WOOLEYED_POTION)
+		val strong = BuiltInRegistries.POTION.wrapAsHolder(STRONG_WOOLEYED_POTION)
+		event.builder.addMix(Potions.AWKWARD, HexicalBlocks.PERIWINKLE_FLOWER_ITEM, normal)
+		event.builder.addMix(normal, Items.REDSTONE, long)
+		event.builder.addMix(normal, Items.GLOWSTONE_DUST, strong)
 	}
 }
 
-object WooleyedEffect : StatusEffect(StatusEffectCategory.BENEFICIAL, 0xff_a678f1.toInt())
+object WooleyedEffect : MobEffect(MobEffectCategory.BENEFICIAL, 0xff_a678f1.toInt())

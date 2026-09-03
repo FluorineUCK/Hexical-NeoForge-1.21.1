@@ -4,66 +4,76 @@ import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
 import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.casting.iota.NullIota
-import at.petrak.hexcasting.api.utils.putCompound
-import at.petrak.hexcasting.api.utils.serializeToNBT
 import at.petrak.hexcasting.common.items.magic.ItemPackagedHex
+import miyucomics.hexical.inits.HexicalItems
 import miyucomics.hexical.inits.HexicalSounds
-import net.minecraft.entity.Entity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.ItemStack
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.server.world.ServerWorld
-import net.minecraft.sound.SoundCategory
-import net.minecraft.util.Hand
-import net.minecraft.util.Rarity
-import net.minecraft.util.TypedActionResult
-import net.minecraft.world.GameMode
-import net.minecraft.world.World
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.sounds.SoundSource
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.item.Rarity
+import net.minecraft.world.InteractionResultHolder
+import net.minecraft.world.level.GameType
+import net.minecraft.world.level.Level
+import miyucomics.hexical.hexcompat.ItemStackDataCompat
 
-object ArchLampItem : ItemPackagedHex(Settings().maxCount(1).rarity(Rarity.EPIC)) {
-	override fun use(world: World, user: PlayerEntity, hand: Hand): TypedActionResult<ItemStack> {
-		val stack = user.getStackInHand(hand)
+class ArchLampItem : ItemPackagedHex(Properties().stacksTo(1).rarity(Rarity.EPIC)) {
+	override fun use(world: Level, user: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+		val stack = user.getItemInHand(hand)
 		if (!hasHex(stack))
-			return TypedActionResult.fail(stack)
+			return InteractionResultHolder.fail(stack)
 
-		val stackNbt = stack.orCreateNbt
-		if (!stackNbt.contains("active"))
-			stackNbt.putBoolean("active", false)
+		val active = ItemStackDataCompat.customData(stack).getBoolean("active")
 
-		if (world.isClient) {
-			world.playSound(user.x, user.y, user.z, if (stackNbt.getBoolean("active")) HexicalSounds.LAMP_DEACTIVATE else HexicalSounds.LAMP_ACTIVATE, SoundCategory.MASTER, 1f, 1f, true)
-			return TypedActionResult.success(stack)
+		if (world.isClientSide) {
+			world.playLocalSound(user.x, user.y, user.z, if (active) HexicalSounds.LAMP_DEACTIVATE else HexicalSounds.LAMP_ACTIVATE, SoundSource.MASTER, 1f, 1f, true)
+			return InteractionResultHolder.success(stack)
 		}
 
-		if (stackNbt.getBoolean("active")) {
-			val vm = CastingVM(CastingImage(), LampCastEnv(user as ServerPlayerEntity, hand, true, stack))
-			vm.queueExecuteAndWrapIotas((stack.item as ArchLampItem).getHex(stack, world as ServerWorld)!!, world)
-			stackNbt.putBoolean("active", false)
-			return TypedActionResult.success(stack)
+		if (active) {
+			val vm = CastingVM(CastingImage(), ArchLampCastEnv(user as ServerPlayer, hand, true, stack))
+			vm.queueExecuteAndWrapIotas((stack.item as ArchLampItem).getHex(stack, world as ServerLevel)!!, world)
+			ItemStackDataCompat.update(stack) { it.putBoolean("active", false) }
+			return InteractionResultHolder.success(stack)
 		}
 
-		stackNbt.putBoolean("active", true)
-		stackNbt.putCompound("position", user.eyePos.serializeToNBT())
-		stackNbt.putCompound("rotation", user.rotationVector.serializeToNBT())
-		stackNbt.putCompound("velocity", user.velocity.serializeToNBT())
-		stackNbt.putCompound("storage", IotaType.serialize(NullIota()))
-		stackNbt.putLong("start_time", world.time)
+		ItemStackDataCompat.update(stack) { it.putBoolean("active", true) }
 
-		return TypedActionResult.success(stack)
+		val state = user.getArchLampField()
+		state.position = user.eyePosition
+		state.rotation = user.lookAngle
+		state.velocity = user.deltaMovement
+		state.storage = miyucomics.hexical.hexcompat.serializeIota(NullIota())
+		state.time = world.gameTime
+
+		return InteractionResultHolder.success(stack)
 	}
 
-	override fun inventoryTick(stack: ItemStack, world: World, user: Entity, slot: Int, selected: Boolean) {
-		if (world.isClient) return
+	override fun inventoryTick(stack: ItemStack, world: Level, user: Entity, slot: Int, selected: Boolean) {
+		if (world.isClientSide) return
 		if (getMedia(stack) == 0L) return
-		if (user !is ServerPlayerEntity) return
-		if (!stack.orCreateNbt.getBoolean("active")) return
-		if (user.interactionManager.gameMode == GameMode.SPECTATOR) return
-		val vm = CastingVM(CastingImage(), LampCastEnv(user, Hand.MAIN_HAND, false, stack))
-		vm.queueExecuteAndWrapIotas((stack.item as ArchLampItem).getHex(stack, world as ServerWorld)!!, world)
+		if (user !is ServerPlayer) return
+		if (!ItemStackDataCompat.customData(stack).getBoolean("active")) return
+		if (user.gameMode.gameModeForPlayer == GameType.SPECTATOR) return
+		val vm = CastingVM(CastingImage(), ArchLampCastEnv(user, InteractionHand.MAIN_HAND, false, stack))
+		vm.queueExecuteAndWrapIotas((stack.item as ArchLampItem).getHex(stack, world as ServerLevel)!!, world)
 	}
 
 	override fun canDrawMediaFromInventory(stack: ItemStack) = false
 	override fun canRecharge(stack: ItemStack) = false
 	override fun breakAfterDepletion() = false
 	override fun cooldown() = 0
+}
+
+fun hasActiveArchLamp(player: ServerPlayer): Boolean {
+	for (stack in player.inventory.items)
+		if (stack.item == HexicalItems.ARCH_LAMP_ITEM && ItemStackDataCompat.customData(stack).getBoolean("active"))
+			return true
+	for (stack in player.inventory.offhand)
+		if (stack.item == HexicalItems.ARCH_LAMP_ITEM && ItemStackDataCompat.customData(stack).getBoolean("active"))
+			return true
+	return false
 }

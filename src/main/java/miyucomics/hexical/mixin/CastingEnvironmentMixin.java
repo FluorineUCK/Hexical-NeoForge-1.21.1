@@ -1,11 +1,11 @@
 package miyucomics.hexical.mixin;
 
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment;
-import miyucomics.hexical.features.periwinkle.WooleyedEffect;
+import miyucomics.hexical.features.periwinkle.WooleyedEffectRegister;
 import miyucomics.hexical.inits.HexicalItems;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,9 +21,9 @@ public abstract class CastingEnvironmentMixin {
 	private void canDoGreatSpells(CallbackInfoReturnable<Boolean> cir) {
 		if (this.getCastingEntity() == null)
 			return;
-		if (this.getCastingEntity() instanceof PlayerEntity player && player.getInventory().armor.get(3).isOf(HexicalItems.LEI))
+		if (this.getCastingEntity() instanceof Player player && player.getInventory().armor.get(3).is(HexicalItems.LEI))
 			cir.setReturnValue(true);
-		StatusEffectInstance wooleye = this.getCastingEntity().getStatusEffect(WooleyedEffect.INSTANCE);
+		MobEffectInstance wooleye = this.getCastingEntity().getEffect(WooleyedEffectRegister.effectHolder());
 		if (wooleye != null)
 			cir.setReturnValue(wooleye.getAmplifier() < 1);
 	}

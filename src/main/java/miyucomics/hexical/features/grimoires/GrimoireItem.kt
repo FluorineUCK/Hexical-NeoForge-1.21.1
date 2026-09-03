@@ -3,27 +3,27 @@ package miyucomics.hexical.features.grimoires
 import at.petrak.hexcasting.api.casting.iota.PatternIota
 import at.petrak.hexcasting.api.casting.math.HexDir
 import at.petrak.hexcasting.api.casting.math.HexPattern
-import net.minecraft.client.item.TooltipContext
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.text.Text
-import net.minecraft.util.Formatting
-import net.minecraft.world.World
+import net.minecraft.world.item.TooltipFlag
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.network.chat.Component
+import net.minecraft.ChatFormatting
+import miyucomics.hexical.hexcompat.ItemStackDataCompat
 
-object GrimoireItem : Item(Settings().maxCount(1)) {
-	override fun appendTooltip(stack: ItemStack, world: World?, list: MutableList<Text>, tooltipContext: TooltipContext) {
-		if (!stack.hasNbt()) {
-			super.appendTooltip(stack, world, list, tooltipContext)
+class GrimoireItem : Item(Properties().stacksTo(1)) {
+	override fun appendHoverText(stack: ItemStack, context: TooltipContext, list: MutableList<Component>, tooltipFlag: TooltipFlag) {
+		if (!ItemStackDataCompat.hasCustomData(stack)) {
+			super.appendHoverText(stack, context, list, tooltipFlag)
 			return
 		}
 
-		val metadata = stack.nbt!!.getCompound("metadata")
-		val text = Text.translatable("hexical.grimoire.contains")
+		val metadata = ItemStackDataCompat.customData(stack).getCompound("metadata")
+		val text = Component.translatable("hexical.grimoire.contains")
 
-		val components = metadata.keys.map { key -> PatternIota(
+		val components = metadata.allKeys.map { key -> PatternIota(
 			HexPattern.fromAngles(
 				key,
-				HexDir.entries[metadata.getCompound(key).getInt("direction")]
+				HexDir.values()[metadata.getCompound(key).getInt("direction")]
 			)
 		).display() }
 
@@ -34,7 +34,7 @@ object GrimoireItem : Item(Settings().maxCount(1)) {
 			}
 		}
 
-		list.add(text.formatted(Formatting.GRAY))
-		super.appendTooltip(stack, world, list, tooltipContext)
+		list.add(text.withStyle(ChatFormatting.GRAY))
+		super.appendHoverText(stack, context, list, tooltipFlag)
 	}
 }

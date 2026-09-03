@@ -1,24 +1,23 @@
 package miyucomics.hexical.features.shaders
 
-import miyucomics.hexical.HexicalMain
 import miyucomics.hexical.misc.InitHook
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.util.Identifier
+import miyucomics.hexical.network.ShaderPayload
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.resources.ResourceLocation
+import net.neoforged.neoforge.common.NeoForge
+import net.neoforged.neoforge.event.entity.player.PlayerEvent
+import net.neoforged.neoforge.network.PacketDistributor
 
 object ServerShaderManager : InitHook() {
-    val SHADER_CHANNEL: Identifier = HexicalMain.id("shader")
-
-    fun setShader(player: ServerPlayerEntity, shader: Identifier?) {
-        ServerPlayNetworking.send(player, SHADER_CHANNEL, PacketByteBufs.create().also { it.writeString(shader.toString()) })
+    fun setShader(player: ServerPlayer, shader: ResourceLocation?) {
+		PacketDistributor.sendToPlayer(player, ShaderPayload(shader))
     }
 
     override fun init() {
-        ServerPlayerEvents.AFTER_RESPAWN.register { _, player, alive ->
-            if (!alive)
-                setShader(player, null)
-        }
+		NeoForge.EVENT_BUS.addListener(::onClone)
     }
+
+	private fun onClone(event: PlayerEvent.Clone) {
+		if (event.isWasDeath) (event.entity as? ServerPlayer)?.let { setShader(it, null) }
+	}
 }

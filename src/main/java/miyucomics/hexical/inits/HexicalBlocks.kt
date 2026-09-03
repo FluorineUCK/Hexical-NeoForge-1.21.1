@@ -1,8 +1,6 @@
 package miyucomics.hexical.inits
 
 import miyucomics.hexical.HexicalMain
-import miyucomics.hexical.features.amber_seal.AmberSealBlock
-import miyucomics.hexical.features.amber_seal.AmberSealBlockEntity
 import miyucomics.hexical.features.hex_candles.HexCandleBlock
 import miyucomics.hexical.features.hex_candles.HexCandleBlockEntity
 import miyucomics.hexical.features.hex_candles.HexCandleCakeBlock
@@ -12,25 +10,27 @@ import miyucomics.hexical.features.mage_blocks.MageBlockEntity
 import miyucomics.hexical.features.media_jar.MediaJarBlock
 import miyucomics.hexical.features.media_jar.MediaJarBlockEntity
 import miyucomics.hexical.features.media_jar.MediaJarItem
-import miyucomics.hexical.features.pedestal.CarpetedPedestalBlock
-import miyucomics.hexical.features.pedestal.CarpetedPedestalBlockEntity
 import miyucomics.hexical.features.pedestal.PedestalBlock
 import miyucomics.hexical.features.pedestal.PedestalBlockEntity
 import miyucomics.hexical.features.sentinel_beds.SentinelBedBlock
-import net.minecraft.block.AbstractBlock.Settings
-import net.minecraft.block.DyedCarpetBlock
-import net.minecraft.block.FlowerbedBlock
-import net.minecraft.block.MapColor
-import net.minecraft.block.entity.BlockEntityType
-import net.minecraft.block.piston.PistonBehavior
-import net.minecraft.item.BlockItem
-import net.minecraft.item.Item
-import net.minecraft.registry.Registries
-import net.minecraft.registry.Registry
-import net.minecraft.sound.BlockSoundGroup
-import net.minecraft.util.DyeColor
+import net.minecraft.world.level.block.state.BlockBehaviour.Properties
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.WoolCarpetBlock
+import net.minecraft.world.level.block.PinkPetalsBlock
+import net.minecraft.world.level.material.MapColor
+import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.material.PushReaction
+import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.Item
+import net.minecraft.core.registries.Registries
+import net.minecraft.tags.TagKey
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.world.item.DyeColor
+import net.neoforged.neoforge.registries.RegisterEvent
 
 object HexicalBlocks {
+	val CONJURABLE_FLOWERS: TagKey<Block> = TagKey.create(Registries.BLOCK, HexicalMain.id("conjurable_flower"))
+
 	val HEX_CANDLE_BLOCK: HexCandleBlock = HexCandleBlock()
 	val HEX_CANDLE_CAKE_BLOCK: HexCandleCakeBlock = HexCandleCakeBlock()
 
@@ -39,76 +39,60 @@ object HexicalBlocks {
 	val MEDIA_JAR_BLOCK: MediaJarBlock = MediaJarBlock()
 
 	@JvmField
-	val CASTING_CARPET = DyedCarpetBlock(DyeColor.PURPLE, Settings.create().mapColor(MapColor.PURPLE).strength(0.1f).sounds(BlockSoundGroup.WOOL).burnable())
-	val CASTING_CARPET_ITEM = BlockItem(CASTING_CARPET, Item.Settings())
+	val CASTING_CARPET = WoolCarpetBlock(DyeColor.PURPLE, Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(0.1f).sound(SoundType.WOOL).ignitedByLava())
+	val CASTING_CARPET_ITEM = BlockItem(CASTING_CARPET, Item.Properties())
 
 	@JvmField
 	val SENTINEL_BED_BLOCK = SentinelBedBlock()
 
-	val PERIWINKLE_FLOWER = FlowerbedBlock(Settings.create().mapColor(MapColor.PURPLE).noCollision().sounds(BlockSoundGroup.PINK_PETALS).pistonBehavior(PistonBehavior.DESTROY))
-	val PERIWINKLE_FLOWER_ITEM = BlockItem(PERIWINKLE_FLOWER, Item.Settings())
+	val PERIWINKLE_FLOWER = PinkPetalsBlock(Properties.of().mapColor(MapColor.COLOR_PURPLE).noCollission().sound(SoundType.PINK_PETALS).pushReaction(PushReaction.DESTROY))
+	val PERIWINKLE_FLOWER_ITEM = BlockItem(PERIWINKLE_FLOWER, Item.Properties())
 
+	@JvmField
 	val MEDIA_JAR_ITEM = MediaJarItem()
-	val HEX_CANDLE_ITEM = BlockItem(HEX_CANDLE_BLOCK, Item.Settings())
-	val SENTINEL_BED_ITEM = BlockItem(SENTINEL_BED_BLOCK, Item.Settings())
-
-	val AMBER_SEAL_BLOCK = AmberSealBlock
 	@JvmField
-	val AMBER_SEAL_ITEM = BlockItem(AMBER_SEAL_BLOCK, Item.Settings().maxCount(1))
-
-	@JvmField
-	val MAGE_BLOCK_ENTITY: BlockEntityType<MageBlockEntity> = BlockEntityType.Builder.create(::MageBlockEntity, MAGE_BLOCK).build(null)
-	val AMBER_SEAL_BLOCK_ENTITY: BlockEntityType<AmberSealBlockEntity> = BlockEntityType.Builder.create(::AmberSealBlockEntity, AMBER_SEAL_BLOCK).build(null)
-	val HEX_CANDLE_BLOCK_ENTITY: BlockEntityType<HexCandleBlockEntity> = BlockEntityType.Builder.create(::HexCandleBlockEntity, HEX_CANDLE_BLOCK).build(null)
-	val HEX_CANDLE_CAKE_BLOCK_ENTITY: BlockEntityType<HexCandleCakeBlockEntity> = BlockEntityType.Builder.create(::HexCandleCakeBlockEntity, HEX_CANDLE_CAKE_BLOCK).build(null)
-	val MEDIA_JAR_BLOCK_ENTITY: BlockEntityType<MediaJarBlockEntity> = BlockEntityType.Builder.create(::MediaJarBlockEntity, MEDIA_JAR_BLOCK).build(null)
+	val MAGE_BLOCK_ITEM = BlockItem(MAGE_BLOCK, Item.Properties())
+	val HEX_CANDLE_ITEM = BlockItem(HEX_CANDLE_BLOCK, Item.Properties())
+	val SENTINEL_BED_ITEM = BlockItem(SENTINEL_BED_BLOCK, Item.Properties())
 
 	val PEDESTAL_BLOCK = PedestalBlock()
-	val PEDESTAL_ITEM = BlockItem(PEDESTAL_BLOCK, Item.Settings())
-	val PEDESTAL_BLOCK_ENTITY: BlockEntityType<PedestalBlockEntity> = BlockEntityType.Builder.create({ pos, state -> PedestalBlockEntity(PEDESTAL_BLOCK_ENTITY, pos, state) }, PEDESTAL_BLOCK).build(null)
-	lateinit var CARPETED_PEDESTAL_BLOCK_ENTITY: BlockEntityType<CarpetedPedestalBlockEntity>
+	val PEDESTAL_ITEM = BlockItem(PEDESTAL_BLOCK, Item.Properties())
 
-	val PEDESTAL_BLOCKS: MutableList<Pair<String, PedestalBlock>> = mutableListOf()
-	val PEDESTAL_BLOCK_ITEMS: MutableList<BlockItem> = mutableListOf()
+	@JvmField
+	val MAGE_BLOCK_ENTITY: BlockEntityType<MageBlockEntity> = BlockEntityType.Builder.of(::MageBlockEntity, MAGE_BLOCK).build(null)
+	val HEX_CANDLE_BLOCK_ENTITY: BlockEntityType<HexCandleBlockEntity> = BlockEntityType.Builder.of(::HexCandleBlockEntity, HEX_CANDLE_BLOCK).build(null)
+	val HEX_CANDLE_CAKE_BLOCK_ENTITY: BlockEntityType<HexCandleCakeBlockEntity> = BlockEntityType.Builder.of(::HexCandleCakeBlockEntity, HEX_CANDLE_CAKE_BLOCK).build(null)
+	val MEDIA_JAR_BLOCK_ENTITY: BlockEntityType<MediaJarBlockEntity> = BlockEntityType.Builder.of(::MediaJarBlockEntity, MEDIA_JAR_BLOCK).build(null)
+	val PEDESTAL_BLOCK_ENTITY: BlockEntityType<PedestalBlockEntity> = BlockEntityType.Builder.of(::PedestalBlockEntity, PEDESTAL_BLOCK).build(null)
 
-	fun init() {
-		Registry.register(Registries.BLOCK, HexicalMain.id("amber_seal"), AMBER_SEAL_BLOCK)
-		Registry.register(Registries.BLOCK, HexicalMain.id("hex_candle"), HEX_CANDLE_BLOCK)
-		Registry.register(Registries.BLOCK, HexicalMain.id("hex_candle_cake"), HEX_CANDLE_CAKE_BLOCK)
-		Registry.register(Registries.BLOCK, HexicalMain.id("mage_block"), MAGE_BLOCK)
-		Registry.register(Registries.BLOCK, HexicalMain.id("media_jar"), MEDIA_JAR_BLOCK)
-		Registry.register(Registries.BLOCK, HexicalMain.id("sentinel_bed"), SENTINEL_BED_BLOCK)
-		Registry.register(Registries.BLOCK, HexicalMain.id("periwinkle"), PERIWINKLE_FLOWER)
-		Registry.register(Registries.BLOCK, HexicalMain.id("casting_carpet"), CASTING_CARPET)
-
-		Registry.register(Registries.ITEM, HexicalMain.id("amber_seal"), AMBER_SEAL_ITEM)
-		Registry.register(Registries.ITEM, HexicalMain.id("mage_block"), BlockItem(MAGE_BLOCK, Item.Settings()))
-		Registry.register(Registries.ITEM, HexicalMain.id("hex_candle"), HEX_CANDLE_ITEM)
-		Registry.register(Registries.ITEM, HexicalMain.id("sentinel_bed"), SENTINEL_BED_ITEM)
-		Registry.register(Registries.ITEM, HexicalMain.id("media_jar"), MEDIA_JAR_ITEM)
-		Registry.register(Registries.ITEM, HexicalMain.id("periwinkle"), PERIWINKLE_FLOWER_ITEM)
-		Registry.register(Registries.ITEM, HexicalMain.id("casting_carpet"), CASTING_CARPET_ITEM)
-
-		Registry.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("amber_seal"), AMBER_SEAL_BLOCK_ENTITY)
-		Registry.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("hex_candle"), HEX_CANDLE_BLOCK_ENTITY)
-		Registry.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("hex_candle_cake"), HEX_CANDLE_CAKE_BLOCK_ENTITY)
-		Registry.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("media_jar"), MEDIA_JAR_BLOCK_ENTITY)
-		Registry.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("mage_block"), MAGE_BLOCK_ENTITY)
-
-		PEDESTAL_BLOCKS.add(Pair("pedestal", PEDESTAL_BLOCK))
-		Registry.register(Registries.BLOCK, HexicalMain.id("pedestal"), PEDESTAL_BLOCK)
-		Registry.register(Registries.ITEM, HexicalMain.id("pedestal"), PEDESTAL_ITEM)
-		Registry.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("pedestal"), PEDESTAL_BLOCK_ENTITY)
-
-		DyeColor.entries.forEach { color ->
-			val name = color.getName() + "_carpeted_pedestal"
-			val id = HexicalMain.id(name)
-			val block = CarpetedPedestalBlock()
-			Registry.register(Registries.BLOCK, id, block)
-			PEDESTAL_BLOCKS.add(Pair(name, block))
-			PEDESTAL_BLOCK_ITEMS.add(Registry.register(Registries.ITEM, id, BlockItem(block, Item.Settings())))
+	fun register(event: RegisterEvent) {
+		when (event.registryKey) {
+			Registries.BLOCK -> {
+				event.register(Registries.BLOCK, HexicalMain.id("hex_candle")) { HEX_CANDLE_BLOCK }
+				event.register(Registries.BLOCK, HexicalMain.id("hex_candle_cake")) { HEX_CANDLE_CAKE_BLOCK }
+				event.register(Registries.BLOCK, HexicalMain.id("mage_block")) { MAGE_BLOCK }
+				event.register(Registries.BLOCK, HexicalMain.id("media_jar")) { MEDIA_JAR_BLOCK }
+				event.register(Registries.BLOCK, HexicalMain.id("sentinel_bed")) { SENTINEL_BED_BLOCK }
+				event.register(Registries.BLOCK, HexicalMain.id("periwinkle")) { PERIWINKLE_FLOWER }
+				event.register(Registries.BLOCK, HexicalMain.id("casting_carpet")) { CASTING_CARPET }
+				event.register(Registries.BLOCK, HexicalMain.id("pedestal")) { PEDESTAL_BLOCK }
+			}
+			Registries.ITEM -> {
+				event.register(Registries.ITEM, HexicalMain.id("mage_block")) { MAGE_BLOCK_ITEM }
+				event.register(Registries.ITEM, HexicalMain.id("hex_candle")) { HEX_CANDLE_ITEM }
+				event.register(Registries.ITEM, HexicalMain.id("sentinel_bed")) { SENTINEL_BED_ITEM }
+				event.register(Registries.ITEM, HexicalMain.id("media_jar")) { MEDIA_JAR_ITEM }
+				event.register(Registries.ITEM, HexicalMain.id("periwinkle")) { PERIWINKLE_FLOWER_ITEM }
+				event.register(Registries.ITEM, HexicalMain.id("casting_carpet")) { CASTING_CARPET_ITEM }
+				event.register(Registries.ITEM, HexicalMain.id("pedestal")) { PEDESTAL_ITEM }
+			}
+			Registries.BLOCK_ENTITY_TYPE -> {
+				event.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("hex_candle")) { HEX_CANDLE_BLOCK_ENTITY }
+				event.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("hex_candle_cake")) { HEX_CANDLE_CAKE_BLOCK_ENTITY }
+				event.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("media_jar")) { MEDIA_JAR_BLOCK_ENTITY }
+				event.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("mage_block")) { MAGE_BLOCK_ENTITY }
+				event.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("pedestal")) { PEDESTAL_BLOCK_ENTITY }
+			}
 		}
-
-		CARPETED_PEDESTAL_BLOCK_ENTITY = Registry.register(Registries.BLOCK_ENTITY_TYPE, HexicalMain.id("carpeted_pedestal"), BlockEntityType.Builder.create(::CarpetedPedestalBlockEntity, *PEDESTAL_BLOCKS.map { (_, block) -> block }.toTypedArray()).build(null))
 	}
 }

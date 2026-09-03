@@ -1,6 +1,6 @@
 {
 	"name": "hexical.page.wooleyed_potion.title",
-	"icon": "minecraft:potion{Potion:\"hexical:wooleyed\"}",
+	"icon": "minecraft:potion[minecraft:potion_contents={potion:\"hexical:wooleyed\"}]",
 	"advancement": "hexcasting:root",
 	"category": "hexcasting:items",
 	"sortnum": 8,
@@ -13,7 +13,7 @@
 			"type": "patchouli:spotlight",
 			"title": "hexical.page.wooleyed_potion.header",
 			"text": "hexical.page.wooleyed_potion.1",
-			"item": "minecraft:potion{Potion:\"hexical:wooleyed\"}"
+			"item": "minecraft:potion[minecraft:potion_contents={potion:\"hexical:wooleyed\"}]"
 		}
 	]
 }

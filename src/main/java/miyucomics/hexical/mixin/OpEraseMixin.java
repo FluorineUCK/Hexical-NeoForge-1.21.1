@@ -1,7 +1,8 @@
 package miyucomics.hexical.mixin;
 
 import at.petrak.hexcasting.common.casting.actions.spells.OpErase;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
+import miyucomics.hexical.hexcompat.ItemStackDataCompat;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -13,7 +14,7 @@ public class OpEraseMixin {
 	@ModifyArg(method = "execute", at = @At(value = "INVOKE", target = "Lat/petrak/hexcasting/api/casting/eval/CastingEnvironment;getHeldItemToOperateOn(Ljava/util/function/Predicate;)Lat/petrak/hexcasting/api/casting/eval/CastingEnvironment$HeldItemInfo;"), index = 0)
 	private Predicate<ItemStack> dontEraseAutographed(Predicate<ItemStack> originalPredicate) {
 		return stack -> {
-			if (stack.getNbt() != null && stack.getNbt().contains("autographs"))
+			if (ItemStackDataCompat.contains(stack, "autographs"))
 				return false;
 			return originalPredicate.test(stack);
 		};

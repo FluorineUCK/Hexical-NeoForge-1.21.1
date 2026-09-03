@@ -1,18 +1,11 @@
 package miyucomics.hexical.features.evocation
 
-import miyucomics.hexical.misc.InitHook
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+import miyucomics.hexical.network.PlayerUuidPayload
+import net.minecraft.client.Minecraft
 
-object ClientEvocationReceiver : InitHook() {
-	override fun init() {
-		ClientPlayNetworking.registerGlobalReceiver(ServerEvocationManager.START_EVOKE_CHANNEL) { client, _, packet, _ ->
-			val player = client.world!!.getPlayerByUuid(packet.readUuid()) ?: return@registerGlobalReceiver
-			player.evocationActive = true
-		}
-
-		ClientPlayNetworking.registerGlobalReceiver(ServerEvocationManager.END_EVOKING_CHANNEL) { client, _, packet, _ ->
-			val player = client.world!!.getPlayerByUuid(packet.readUuid()) ?: return@registerGlobalReceiver
-			player.evocationActive = false
-		}
+object ClientEvocationReceiver {
+	fun handle(payload: PlayerUuidPayload, active: Boolean) {
+		val player = Minecraft.getInstance().level?.getPlayerByUUID(payload.playerId) ?: return
+		player.evocationActive = active
 	}
 }

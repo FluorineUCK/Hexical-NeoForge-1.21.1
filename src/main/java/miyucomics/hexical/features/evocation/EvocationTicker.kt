@@ -8,42 +8,44 @@ import miyucomics.hexical.inits.HexicalAdvancements
 import miyucomics.hexical.inits.HexicalSounds
 import miyucomics.hexical.misc.CastingUtils
 import miyucomics.hexical.misc.HexSerialization
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.particle.ParticleTypes
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.server.world.ServerWorld
-import net.minecraft.sound.SoundCategory
-import net.minecraft.util.Hand
-import net.minecraft.util.math.ColorHelper
-import net.minecraft.util.math.MathHelper
+import net.minecraft.world.entity.player.Player
+import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.sounds.SoundSource
+import net.minecraft.world.InteractionHand
+import net.minecraft.util.FastColor
+import net.minecraft.util.Mth
+import net.minecraft.core.particles.ColorParticleOption
 
 class EvocationTicker : PlayerTicker {
-	override fun tick(player: PlayerEntity) {
-		if (player.world.isClient && player.evocationActive) {
-			val rot = player.bodyYaw * (Math.PI.toFloat() / 180) + MathHelper.cos(player.age.toFloat() * 0.6662f) * 0.25f
-			val cos = MathHelper.cos(rot)
-			val sin = MathHelper.sin(rot)
-			val color = IXplatAbstractions.INSTANCE.getPigment(player).colorProvider.getColor((player.world.time * 10).toFloat(), player.pos)
-			val r = ColorHelper.Argb.getRed(color) / 255f
-			val g = ColorHelper.Argb.getGreen(color) / 255f
-			val b = ColorHelper.Argb.getBlue(color) / 255f
-			player.world.addParticle(ParticleTypes.ENTITY_EFFECT, player.x + cos.toDouble() * 0.6, player.y + 1.8, player.z + sin.toDouble() * 0.6, r.toDouble(), g.toDouble(), b.toDouble())
-			player.world.addParticle(ParticleTypes.ENTITY_EFFECT, player.x - cos.toDouble() * 0.6, player.y + 1.8, player.z - sin.toDouble() * 0.6, r.toDouble(), g.toDouble(), b.toDouble())
+	override fun tick(player: Player) {
+		if (player.level().isClientSide && player.evocationActive) {
+			val rot = player.yBodyRot * (Math.PI.toFloat() / 180) + Mth.cos(player.tickCount.toFloat() * 0.6662f) * 0.25f
+			val cos = Mth.cos(rot)
+			val sin = Mth.sin(rot)
+			val color = IXplatAbstractions.INSTANCE.getPigment(player).colorProvider.getColor((player.level().gameTime * 10).toFloat(), player.position())
+			val r = FastColor.ARGB32.red(color) / 255f
+			val g = FastColor.ARGB32.green(color) / 255f
+			val b = FastColor.ARGB32.blue(color) / 255f
+			val particle = ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, r, g, b)
+			player.level().addParticle(particle, player.x + cos.toDouble() * 0.6, player.y + 1.8, player.z + sin.toDouble() * 0.6, 0.0, 0.0, 0.0)
+			player.level().addParticle(particle, player.x - cos.toDouble() * 0.6, player.y + 1.8, player.z - sin.toDouble() * 0.6, 0.0, 0.0, 0.0)
 		}
 
-		if (player.world.isClient)
+		if (player.level().isClientSide)
 			return
 
 		if (player.evocationActive)
 			player.evocationDuration -= 1
 
-		if (player.evocationActive && player.evocationDuration == 0 && CastingUtils.isEnlightened(player as ServerPlayerEntity)) {
-			player.incrementStat(HexicalAdvancements.EVOCATION_STATISTIC)
+		if (player.evocationActive && player.evocationDuration == 0 && CastingUtils.isEnlightened(player as ServerPlayer)) {
+			player.awardStat(HexicalAdvancements.EVOCATION_STATISTIC)
 			player.evocationDuration = ServerEvocationManager.EVOKE_DURATION
-			val hand = if(!player.getStackInHand(Hand.MAIN_HAND).isEmpty && player.getStackInHand(Hand.OFF_HAND).isEmpty){ Hand.OFF_HAND } else { Hand.MAIN_HAND }
+			val hand = if(!player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty && player.getItemInHand(InteractionHand.OFF_HAND).isEmpty){ InteractionHand.OFF_HAND } else { InteractionHand.MAIN_HAND }
 			val vm = CastingVM(CastingImage(), EvocationCastEnv(player, hand))
-			vm.queueExecuteAndWrapIotas(HexSerialization.deserializeHex(player.evocation, player.world as ServerWorld), player.serverWorld)
-			player.world.playSound(null, player.x, player.y, player.z, HexicalSounds.MAGIC_WOOSHES, SoundCategory.PLAYERS, 1f, 1f)
+			vm.queueExecuteAndWrapIotas(HexSerialization.deserializeHex(player.evocation, player.level() as ServerLevel), player.serverLevel())
+			player.level().playSound(null, player.x, player.y, player.z, HexicalSounds.EVOKING_CAST, SoundSource.PLAYERS, 1f, 1f)
 		}
 	}
 }

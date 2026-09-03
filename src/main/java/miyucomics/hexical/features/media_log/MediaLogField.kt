@@ -8,27 +8,28 @@ import at.petrak.hexcasting.api.casting.math.HexPattern
 import at.petrak.hexcasting.api.utils.putCompound
 import at.petrak.hexcasting.api.utils.putList
 import miyucomics.hexical.HexicalMain
+import miyucomics.hexical.hexcompat.deserializePattern
+import miyucomics.hexical.hexcompat.serializePattern
 import miyucomics.hexical.features.player.getHexicalPlayerManager
 import miyucomics.hexical.features.player.types.PlayerField
+import miyucomics.hexical.network.MediaLogPayload
 import miyucomics.hexpose.utils.RingBuffer
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtList
-import net.minecraft.nbt.NbtString
-import net.minecraft.network.PacketByteBuf
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.text.Text
-import net.minecraft.util.Identifier
+import net.minecraft.world.entity.player.Player
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.ListTag
+import net.minecraft.nbt.StringTag
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.network.chat.Component
+import net.minecraft.core.HolderLookup
+import net.neoforged.neoforge.network.PacketDistributor
 
 class MediaLogField : PlayerField {
 	var patterns: RingBuffer<HexPattern> = RingBuffer(32)
-	var stack: RingBuffer<Text> = RingBuffer(8)
-	var mishap: Text = Text.empty()
+	var stack: RingBuffer<Component> = RingBuffer(8)
+	var mishap: Component = Component.empty()
 	var active = true
 
-	fun saveMishap(text: Text) {
+	fun saveMishap(text: Component) {
 		mishap = text
 	}
 
@@ -41,43 +42,37 @@ class MediaLogField : PlayerField {
 		iotas.forEach { iota -> stack.add(iota.display()) }
 	}
 
-	override fun readNbt(compound: NbtCompound) {
+	override fun readNbt(compound: CompoundTag, provider: HolderLookup.Provider) {
 		if (!compound.contains("media_log"))
 			return
-		fromNbt(compound.getCompound("media_log"))
+		fromNbt(compound.getCompound("media_log"), provider)
 	}
 
-	override fun writeNbt(compound: NbtCompound) {
-		compound.putCompound("media_log", toNbt())
+	override fun writeNbt(compound: CompoundTag, provider: HolderLookup.Provider) {
+		compound.putCompound("media_log", toNbt(provider))
 	}
 
-	fun fromNbt(log: NbtCompound) {
-		log.getList("patterns", NbtCompound.COMPOUND_TYPE.toInt()).forEach { pattern -> patterns.add(HexPattern.fromNBT(pattern as NbtCompound)) }
-		log.getList("stack", NbtCompound.STRING_TYPE.toInt()).forEach { iota -> Text.Serializer.fromJson((iota as NbtString).asString())?.let { stack.add(it) } }
-		this.mishap = Text.Serializer.fromJson(log.getString("mishap")) ?: Text.empty()
+	fun fromNbt(log: CompoundTag, provider: HolderLookup.Provider) {
+		log.getList("patterns", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()).forEach { pattern -> deserializePattern(pattern)?.let(patterns::add) }
+		log.getList("stack", net.minecraft.nbt.Tag.TAG_STRING.toInt()).forEach { iota -> Component.Serializer.fromJson((iota as StringTag).getAsString(), provider)?.let { stack.add(it) } }
+		this.mishap = Component.Serializer.fromJson(log.getString("mishap"), provider) ?: Component.empty()
 	}
 
-	fun toNbt(): NbtCompound {
-		return NbtCompound().also { compound ->
-			compound.putList("patterns", NbtList().also { patterns.buffer.forEach { pattern -> it.add(pattern.serializeToNBT()) } })
-			compound.putList("stack", NbtList().also { stack.buffer.forEach { iota -> it.add(NbtString.of(Text.Serializer.toJson(iota))) } })
-			compound.putString("mishap", Text.Serializer.toJson(mishap))
+	fun toNbt(provider: HolderLookup.Provider): CompoundTag {
+		return CompoundTag().also { compound ->
+			compound.putList("patterns", ListTag().also { patterns.buffer().forEach { pattern -> it.add(serializePattern(pattern)) } })
+			compound.putList("stack", ListTag().also { stack.buffer().forEach { iota -> it.add(StringTag.valueOf(Component.Serializer.toJson(iota, provider))) } })
+			compound.putString("mishap", Component.Serializer.toJson(mishap, provider))
 		}
 	}
 
-	fun toPacket(): PacketByteBuf {
-		val buf = PacketByteBufs.create()
-		buf.writeNbt(this.toNbt())
-		return buf
-	}
-
 	companion object {
-		val MEDIA_LOG_CHANNEL: Identifier = HexicalMain.id("media_log")
-
 		@JvmStatic
 		fun isEnvCompatible(env: CastingEnvironment) = env is StaffCastEnv || env is PackagedItemCastEnv
 	}
 }
 
-fun PlayerEntity.getMediaLog() = this.getHexicalPlayerManager().get(MediaLogField::class)
-fun ServerPlayerEntity.syncMediaLog() { ServerPlayNetworking.send(this, MediaLogField.MEDIA_LOG_CHANNEL, this.getMediaLog().toPacket()) }
+fun Player.getMediaLog() = this.getHexicalPlayerManager().get(MediaLogField::class)
+fun ServerPlayer.syncMediaLog() {
+	PacketDistributor.sendToPlayer(this, MediaLogPayload(this.getMediaLog().toNbt(this.registryAccess())))
+}

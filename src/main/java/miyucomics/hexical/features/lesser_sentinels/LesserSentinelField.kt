@@ -1,85 +1,76 @@
 package miyucomics.hexical.features.lesser_sentinels
 
 import at.petrak.hexcasting.api.utils.asCompound
+import at.petrak.hexcasting.api.utils.asDouble
 import at.petrak.hexcasting.api.utils.putList
 import miyucomics.hexical.features.player.getHexicalPlayerManager
 import miyucomics.hexical.features.player.types.PlayerField
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtDouble
-import net.minecraft.nbt.NbtElement
-import net.minecraft.nbt.NbtList
-import net.minecraft.registry.RegistryKey
-import net.minecraft.registry.RegistryKeys
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.util.Identifier
-import net.minecraft.util.math.Vec3d
-import net.minecraft.world.World
+import miyucomics.hexical.network.LesserSentinelsPayload
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.DoubleTag
+import net.minecraft.nbt.Tag
+import net.minecraft.nbt.ListTag
+import net.minecraft.resources.ResourceKey
+import net.minecraft.core.registries.Registries
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.phys.Vec3
+import net.minecraft.world.level.Level
+import net.minecraft.core.HolderLookup
+import net.neoforged.neoforge.network.PacketDistributor
 
 class LesserSentinelField : PlayerField {
-	var instances: HashMap<RegistryKey<World>, DimensionalLesserSentinelInstance> = hashMapOf()
+	var instances: HashMap<ResourceKey<Level>, DimensionalLesserSentinelInstance> = hashMapOf()
 
-	override fun readNbt(compound: NbtCompound) {
+	override fun readNbt(compound: CompoundTag, provider: HolderLookup.Provider) {
 		instances.clear()
 		if (!compound.contains("lesser_sentinels"))
 			return
-		compound.getList("lesser_sentinels", NbtElement.COMPOUND_TYPE.toInt()).forEach {
+		compound.getList("lesser_sentinels", Tag.TAG_COMPOUND.toInt()).forEach {
 			val instance = DimensionalLesserSentinelInstance.createFromNbt(it.asCompound)
 			instances[instance.dimension] = instance
 		}
 	}
 
-	override fun writeNbt(compound: NbtCompound) {
-		compound.putList("lesser_sentinels", NbtList().also {
+	override fun writeNbt(compound: CompoundTag, provider: HolderLookup.Provider) {
+		compound.putList("lesser_sentinels", ListTag().also {
 			instances.values.forEach { instance -> it.add(instance.toNbt()) }
 		})
 	}
 
-	fun getCurrentInstance(player: ServerPlayerEntity) = instances.getOrPut(player.serverWorld.registryKey) { DimensionalLesserSentinelInstance(mutableListOf(), player.serverWorld.registryKey) }
+	fun getCurrentInstance(player: ServerPlayer) = instances.getOrPut(player.serverLevel().dimension()) { DimensionalLesserSentinelInstance(mutableListOf(), player.serverLevel().dimension()) }
 }
 
-data class DimensionalLesserSentinelInstance(var lesserSentinels: MutableList<Vec3d>, val dimension: RegistryKey<World>) {
-	fun toNbt(): NbtCompound {
-		val compound = NbtCompound()
+data class DimensionalLesserSentinelInstance(var lesserSentinels: MutableList<Vec3>, val dimension: ResourceKey<Level>) {
+	fun toNbt(): CompoundTag {
+		val compound = CompoundTag()
 
-		val location = NbtList()
+		val location = ListTag()
 		lesserSentinels.forEach { pos ->
-			location.add(NbtDouble.of(pos.x))
-			location.add(NbtDouble.of(pos.y))
-			location.add(NbtDouble.of(pos.z))
+			location.add(DoubleTag.valueOf(pos.x))
+			location.add(DoubleTag.valueOf(pos.y))
+			location.add(DoubleTag.valueOf(pos.z))
 		}
 
-		compound.putString("dimension", dimension.value.toString())
+		compound.putString("dimension", dimension.location().toString())
 		compound.putList("positional", location)
 		return compound
 	}
 
 	companion object {
-		fun createFromNbt(compound: NbtCompound): DimensionalLesserSentinelInstance {
-			val raw = compound.getList("positional", NbtElement.DOUBLE_TYPE.toInt())
-			val lesserSentinels = mutableListOf<Vec3d>()
-			var i = 0
-			while (i + 2 < raw.size) {
-				lesserSentinels.add(Vec3d(raw.getDouble(i), raw.getDouble(i + 1), raw.getDouble(i + 2)))
-				i += 3
-			}
-			return DimensionalLesserSentinelInstance(lesserSentinels, RegistryKey.of(RegistryKeys.WORLD, Identifier(compound.getString("dimension"))))
+		fun createFromNbt(compound: CompoundTag): DimensionalLesserSentinelInstance {
+			val lesserSentinels = mutableListOf<Vec3>()
+			val positions = compound.getList("positional", Tag.TAG_DOUBLE.toInt()).toMutableList()
+			while (positions.isNotEmpty())
+				lesserSentinels.add(Vec3(positions.removeAt(0).asDouble, positions.removeAt(0).asDouble, positions.removeAt(0).asDouble))
+			return DimensionalLesserSentinelInstance(lesserSentinels, ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(compound.getString("dimension"))))
 		}
 	}
 }
 
-var ServerPlayerEntity.currentLesserSentinels: MutableList<Vec3d>
+var ServerPlayer.currentLesserSentinels: MutableList<Vec3>
 	get() = this.getHexicalPlayerManager().get(LesserSentinelField::class).getCurrentInstance(this).lesserSentinels
 	set(sentinels) { this.getHexicalPlayerManager().get(LesserSentinelField::class).getCurrentInstance(this).lesserSentinels = sentinels }
-fun ServerPlayerEntity.syncLesserSentinels() {
-	val buf = PacketByteBufs.create()
-	val instance = this.currentLesserSentinels
-	buf.writeInt(instance.size)
-	instance.forEach { pos ->
-		buf.writeDouble(pos.x)
-		buf.writeDouble(pos.y)
-		buf.writeDouble(pos.z)
-	}
-	ServerPlayNetworking.send(this, ServerLesserSentinelPusher.LESSER_SENTINEL_CHANNEL, buf)
+fun ServerPlayer.syncLesserSentinels() {
+	PacketDistributor.sendToPlayer(this, LesserSentinelsPayload(this.currentLesserSentinels.toList()))
 }

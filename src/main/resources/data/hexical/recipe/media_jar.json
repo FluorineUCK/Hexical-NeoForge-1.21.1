@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "P": {
+      "item": "hexcasting:edified_pressure_plate"
+    },
+    "B": {
+      "item": "minecraft:glass_bottle"
+    },
+    "G": {
+      "item": "minecraft:glass_pane"
+    }
+  },
+  "pattern": [
+    " P ",
+    "GBG",
+    " G "
+  ],
+  "result": {
+    "id": "hexical:media_jar"
+  }
+}

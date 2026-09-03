@@ -1,25 +1,32 @@
 package miyucomics.hexical.features.sentinel_beds
 
-import net.minecraft.block.Block
-import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
-import net.minecraft.block.FacingBlock
-import net.minecraft.item.ItemPlacementContext
-import net.minecraft.state.StateManager
-import net.minecraft.util.BlockMirror
-import net.minecraft.util.BlockRotation
-import net.minecraft.util.math.Direction
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.DirectionalBlock
+import net.minecraft.world.item.context.BlockPlaceContext
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.Mirror
+import net.minecraft.world.level.block.Rotation
+import net.minecraft.core.Direction
+import com.mojang.serialization.MapCodec
 
-class SentinelBedBlock : FacingBlock(Settings.copy(Blocks.DEEPSLATE_TILES).strength(4f, 6f)) {
+class SentinelBedBlock(properties: Properties = Properties.ofFullCopy(Blocks.DEEPSLATE_TILES).strength(4f, 6f)) : DirectionalBlock(properties) {
 	init {
-		this.defaultState = this.stateManager.getDefaultState().with(FACING, Direction.SOUTH)
+		this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.SOUTH))
 	}
 
-	override fun appendProperties(builder: StateManager.Builder<Block, BlockState>) {
+	override fun codec(): MapCodec<out DirectionalBlock> = CODEC
+
+	override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
 		builder.add(FACING)
 	}
 
-	override fun mirror(state: BlockState, mirror: BlockMirror): BlockState = state.rotate(mirror.getRotation(state.get(FACING)))
-	override fun rotate(state: BlockState, rotation: BlockRotation): BlockState = state.with(FACING, rotation.rotate(state.get(FACING)))
-	override fun getPlacementState(context: ItemPlacementContext): BlockState = this.defaultState.with(FACING, context.playerLookDirection.opposite)
+	override fun mirror(state: BlockState, mirror: Mirror): BlockState = state.rotate(mirror.getRotation(state.getValue(FACING)))
+	override fun rotate(state: BlockState, rotation: Rotation): BlockState = state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
+	override fun getStateForPlacement(context: BlockPlaceContext): BlockState = this.defaultBlockState().setValue(FACING, context.nearestLookingDirection.opposite)
+
+	companion object {
+		@JvmField val CODEC: MapCodec<SentinelBedBlock> = simpleCodec(::SentinelBedBlock)
+	}
 }

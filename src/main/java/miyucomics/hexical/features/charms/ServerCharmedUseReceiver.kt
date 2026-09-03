@@ -3,29 +3,23 @@ package miyucomics.hexical.features.charms
 import at.petrak.hexcasting.api.casting.asActionResult
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.eval.vm.CastingVM
-import miyucomics.hexical.HexicalMain
+import at.petrak.hexcasting.api.utils.TreeList
 import miyucomics.hexical.features.curios.CurioItem
 import miyucomics.hexical.misc.InitHook
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.util.Hand
-import net.minecraft.util.Identifier
-import kotlin.enums.enumEntries
+import miyucomics.hexical.network.CharmedItemUsePayload
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.InteractionHand
 
 object ServerCharmedUseReceiver : InitHook() {
-	@JvmField
-	val CHARMED_ITEM_USE_CHANNEL: Identifier = HexicalMain.id("charmed_item")
+	override fun init() = Unit
 
-	override fun init() {
-		ServerPlayNetworking.registerGlobalReceiver(CHARMED_ITEM_USE_CHANNEL) { server, player, _, buf, _ ->
-			val inputMethod = buf.readInt()
-			val hand = enumEntries<Hand>()[buf.readInt()]
-			val stack = player.getStackInHand(hand)
-			server.execute {
-				val vm = CastingVM(CastingImage().copy(stack = inputMethod.asActionResult), CharmCastEnv(player, hand, stack))
-				vm.queueExecuteAndWrapIotas(CharmUtilities.getHex(stack, player.serverWorld), player.serverWorld)
-				if (stack.item is CurioItem)
-					(stack.item as CurioItem).postCharmCast(player, stack, hand, player.serverWorld, vm.image.stack)
-			}
-		}
+	@JvmStatic
+	fun handle(player: ServerPlayer, payload: CharmedItemUsePayload) {
+		val hand = InteractionHand.entries.getOrNull(payload.hand) ?: return
+		val stack = player.getItemInHand(hand)
+		val vm = CastingVM(CastingImage().copy(stack = TreeList.from(payload.inputMethod.asActionResult)), CharmCastEnv(player, hand, stack))
+		vm.queueExecuteAndWrapIotas(CharmUtilities.getHex(stack, player.serverLevel()), player.serverLevel())
+		if (stack.item is CurioItem)
+			(stack.item as CurioItem).postCharmCast(player, stack, hand, player.serverLevel(), vm.image.stack)
 	}
 }

@@ -1,8 +1,8 @@
 package miyucomics.hexical
 
 import at.petrak.hexcasting.client.render.rotate
-import net.minecraft.util.math.MathHelper
-import net.minecraft.util.math.Vec2f
+import net.minecraft.util.Mth
+import net.minecraft.world.phys.Vec2
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -12,7 +12,7 @@ object RenderUtils {
 	private const val CIRCLE_RESOLUTION: Int = 20
 
 	// takes a list of points, joins them with lines, and calls the vertex function passed in with all the vertices on those lines
-	fun quadifyLines(vertex: (pos: Vec2f) -> Unit, thickness: Float, points: List<Vec2f>) {
+	fun quadifyLines(vertex: (pos: Vec2) -> Unit, thickness: Float, points: List<Vec2>) {
 		val pointCount = points.size
 		if (pointCount < 2)
 			return
@@ -20,8 +20,8 @@ object RenderUtils {
 		val joinAngles = FloatArray(pointCount)
 		for (i in 2 until pointCount) {
 			val currentPoint = points[i - 1]
-			val offsetFromLast = currentPoint.add(points[i - 2].negate())
-			val offsetToNext = points[i].add(currentPoint.negate())
+			val offsetFromLast = currentPoint.add(points[i - 2].negated())
+			val offsetToNext = points[i].add(currentPoint.negated())
 			joinAngles[i - 1] = atan2(
 				offsetFromLast.x * offsetToNext.y - offsetFromLast.y * offsetToNext.x,
 				offsetFromLast.x * offsetToNext.x + offsetFromLast.y * offsetToNext.y
@@ -32,13 +32,13 @@ object RenderUtils {
 			val currentPoint = points[i]
 			val nextPoint = points[i + 1]
 
-			val sideLength = nextPoint.add(currentPoint.negate()).normalize().multiply(thickness)
-			val normal = Vec2f(-sideLength.y, sideLength.x)
+			val sideLength = nextPoint.add(currentPoint.negated()).normalized().scale(thickness)
+			val normal = Vec2(-sideLength.y, sideLength.x)
 
 			val currentDown = currentPoint.add(normal)
-			val currentUp = currentPoint.add(normal.negate())
+			val currentUp = currentPoint.add(normal.negated())
 			val nextDown = nextPoint.add(normal)
-			val nextUp = nextPoint.add(normal.negate())
+			val nextUp = nextPoint.add(normal.negated())
 
 			vertex(currentUp)
 			vertex(currentDown)
@@ -47,7 +47,7 @@ object RenderUtils {
 
 			if (i > 0) {
 				val angle = joinAngles[i]
-				val joinSteps = ceil(abs(angle) / (2 * MathHelper.PI) * CIRCLE_RESOLUTION).toInt()
+				val joinSteps = ceil(abs(angle) / (2 * Mth.PI) * CIRCLE_RESOLUTION).toInt()
 				if (joinSteps < 1)
 					continue
 
@@ -64,7 +64,7 @@ object RenderUtils {
 						previous = fanShift
 					}
 				} else if (angle > 0) {
-					val reversedNormal = normal.negate()
+					val reversedNormal = normal.negated()
 					var previous = currentPoint.add(reversedNormal)
 					for (j in 1..joinSteps) {
 						val fan = rotate(reversedNormal, -angle * (j.toFloat() / joinSteps))
@@ -84,8 +84,8 @@ object RenderUtils {
 			val point = pair[0]
 			val prev = pair[1]
 
-			val sideLength = point.add(prev.negate()).normalize().multiply(thickness)
-			val normal = Vec2f(-sideLength.y, sideLength.x)
+			val sideLength = point.add(prev.negated()).normalized().scale(thickness)
+			val normal = Vec2(-sideLength.y, sideLength.x)
 			val joinSteps = CIRCLE_RESOLUTION / 2
 			for (j in joinSteps downTo 1) {
 				val fan0 = rotate(normal, -PI.toFloat() * (j.toFloat() / joinSteps))

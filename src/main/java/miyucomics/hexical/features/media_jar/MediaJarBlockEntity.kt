@@ -1,43 +1,37 @@
 package miyucomics.hexical.features.media_jar
 
-import at.petrak.hexcasting.api.addldata.ADMediaHolder
 import at.petrak.hexcasting.api.utils.putCompound
 import at.petrak.hexcasting.api.utils.serializeToNBT
 import miyucomics.hexical.features.transmuting.TransmutationResult
 import miyucomics.hexical.features.transmuting.TransmutingHelper
 import miyucomics.hexical.inits.HexicalBlocks
 import miyucomics.hexical.inits.HexicalSounds
-import net.minecraft.block.Block
-import net.minecraft.block.BlockState
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.entity.ItemEntity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.inventory.Inventory
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket
-import net.minecraft.sound.SoundCategory
-import net.minecraft.util.math.BlockPos
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.entity.item.ItemEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.Container
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
+import net.minecraft.sounds.SoundSource
+import net.minecraft.core.BlockPos
+import net.minecraft.core.HolderLookup
 import kotlin.math.max
 import kotlin.math.min
 
-class MediaJarBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(HexicalBlocks.MEDIA_JAR_BLOCK_ENTITY, pos, state), Inventory, ADMediaHolder {
+class MediaJarBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(HexicalBlocks.MEDIA_JAR_BLOCK_ENTITY, pos, state), Container {
 	private var media: Long = 0
 	private var heldStack = ItemStack.EMPTY
 
-	override fun canRecharge() = true
-	override fun canProvide() = true
-	override fun canConstructBattery() = true
-	override fun getConsumptionPriority() = 10000
-	override fun getMedia() = this.media
-	override fun getMaxMedia() = MediaJarBlock.MAX_CAPACITY
-	override fun setMedia(media: Long) {
+	fun getMedia() = this.media
+	private fun setMedia(media: Long) {
 		this.media = max(min(media, MediaJarBlock.MAX_CAPACITY), 0)
-		markDirty()
-		if (!world!!.isClient)
-			world!!.updateListeners(pos, cachedState, cachedState, Block.NOTIFY_ALL)
+		setChanged()
+		if (!level!!.isClientSide)
+			level!!.sendBlockUpdated(worldPosition, blockState, blockState, Block.UPDATE_ALL)
 	}
-
 	fun insertMedia(media: Long): Long {
 		val currentMedia = this.media
 		setMedia(currentMedia + media)
@@ -53,60 +47,62 @@ class MediaJarBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Hexica
 		}
 	}
 
-	override fun writeNbt(nbt: NbtCompound) {
+	override fun saveAdditional(nbt: CompoundTag, provider: HolderLookup.Provider) {
+		super.saveAdditional(nbt, provider)
 		nbt.putLong("media", media)
-		nbt.putCompound("heldStack", heldStack.serializeToNBT())
+		nbt.put("heldStack", heldStack.saveOptional(provider))
 	}
 
-	override fun readNbt(nbt: NbtCompound) {
+	override fun loadAdditional(nbt: CompoundTag, provider: HolderLookup.Provider) {
+		super.loadAdditional(nbt, provider)
 		this.media = nbt.getLong("media")
-		this.heldStack = ItemStack.fromNbt(nbt.getCompound("heldStack"))
+		this.heldStack = ItemStack.parseOptional(provider, nbt.getCompound("heldStack"))
 	}
 
-	override fun size() = 1
-	override fun getMaxCountPerStack() = 1
-	override fun canPlayerUse(playerEntity: PlayerEntity) = false
-	override fun getStack(i: Int): ItemStack = if (i == 0) heldStack else ItemStack.EMPTY
+	override fun getContainerSize() = 1
+	override fun getMaxStackSize() = 1
+	override fun stillValid(playerEntity: Player) = false
+	override fun getItem(i: Int): ItemStack = if (i == 0) heldStack else ItemStack.EMPTY
 	override fun isEmpty() = heldStack.isEmpty
 
-	override fun removeStack(i: Int, amount: Int): ItemStack {
+	override fun removeItem(i: Int, amount: Int): ItemStack {
 		if (i == 0) {
-			markDirty()
+			setChanged()
 			return heldStack.split(amount)
 		}
 		return ItemStack.EMPTY
 	}
 
-	override fun removeStack(i: Int): ItemStack {
+	override fun removeItemNoUpdate(i: Int): ItemStack {
 		if (i == 0) {
 			val originalHeld = heldStack
 			heldStack = ItemStack.EMPTY
-			markDirty()
+			setChanged()
 			return originalHeld
 		}
 		return ItemStack.EMPTY
 	}
 
-	override fun setStack(i: Int, stack: ItemStack) {
+	override fun setItem(i: Int, stack: ItemStack) {
 		if (i != 0)
 			return
-		if (world == null)
+		if (level == null)
 			return
 
-		when (val result = TransmutingHelper.transmuteItem(world!!, stack, getMedia(), ::insertMedia, ::withdrawMedia)) {
+		when (val result = TransmutingHelper.transmuteItem(level!!, stack, getMedia(), ::insertMedia, ::withdrawMedia)) {
 			is TransmutationResult.AbsorbedMedia -> {
-				world!!.playSound(null, pos, HexicalSounds.AMETHYST_MELT, SoundCategory.BLOCKS, 1f, 1f)
+				level!!.playSound(null, worldPosition, HexicalSounds.AMETHYST_MELT, SoundSource.BLOCKS, 1f, 1f)
 				heldStack = stack
 			}
 			is TransmutationResult.TransmutedItems -> {
 				val outputs = result.output.toMutableList()
 				heldStack = outputs.removeAt(0).copy()
-				val spawnPosition = pos.down().toCenterPos()
-				outputs.forEach { world!!.spawnEntity(ItemEntity(world!!, spawnPosition.x, spawnPosition.y, spawnPosition.z, it.copy(), 0.0, 0.0, 0.0)) }
-				world!!.playSound(null, pos, HexicalSounds.ITEM_DUNKS, SoundCategory.BLOCKS, 1f, 1f)
+				val spawnPosition = worldPosition.below().getCenter()
+				outputs.forEach { level!!.addFreshEntity(ItemEntity(level!!, spawnPosition.x, spawnPosition.y, spawnPosition.z, it.copy(), 0.0, 0.0, 0.0)) }
+				level!!.playSound(null, worldPosition, HexicalSounds.ITEM_DUNKS, SoundSource.BLOCKS, 1f, 1f)
 			}
 			is TransmutationResult.RefilledHolder -> {
-				world!!.playSound(null, pos, HexicalSounds.ITEM_DUNKS, SoundCategory.BLOCKS, 1f, 1f)
+				level!!.playSound(null, worldPosition, HexicalSounds.ITEM_DUNKS, SoundSource.BLOCKS, 1f, 1f)
 				heldStack = stack
 			}
 			is TransmutationResult.Pass -> {
@@ -114,14 +110,14 @@ class MediaJarBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Hexica
 			}
 		}
 
-		markDirty()
+		setChanged()
 	}
 
-	override fun clear() {
+	override fun clearContent() {
 		heldStack = ItemStack.EMPTY
-		markDirty()
+		setChanged()
 	}
 
-	override fun toInitialChunkDataNbt(): NbtCompound = createNbt()
-	override fun toUpdatePacket(): BlockEntityUpdateS2CPacket = BlockEntityUpdateS2CPacket.create(this)
+	override fun getUpdateTag(provider: HolderLookup.Provider): CompoundTag = saveWithoutMetadata(provider)
+	override fun getUpdatePacket(): ClientboundBlockEntityDataPacket = ClientboundBlockEntityDataPacket.create(this)
 }

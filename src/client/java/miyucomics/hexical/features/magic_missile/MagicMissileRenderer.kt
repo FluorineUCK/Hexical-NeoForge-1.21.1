@@ -1,13 +1,13 @@
 package miyucomics.hexical.features.magic_missile
 
 import miyucomics.hexical.HexicalMain
-import net.minecraft.client.render.entity.EntityRendererFactory
-import net.minecraft.client.render.entity.ProjectileEntityRenderer
-import net.minecraft.util.Identifier
+import net.minecraft.client.renderer.entity.EntityRendererProvider
+import net.minecraft.client.renderer.entity.ArrowRenderer
+import net.minecraft.resources.ResourceLocation
 
-class MagicMissileRenderer(context: EntityRendererFactory.Context) : ProjectileEntityRenderer<MagicMissileEntity>(context) {
-	override fun getTexture(entity: MagicMissileEntity) = TEXTURE
+class MagicMissileRenderer(context: EntityRendererProvider.Context) : ArrowRenderer<MagicMissileEntity>(context) {
+	override fun getTextureLocation(entity: MagicMissileEntity) = TEXTURE
 	companion object {
-		val TEXTURE: Identifier = Identifier(HexicalMain.MOD_ID, "textures/entity/magic_missile.png")
+		val TEXTURE: ResourceLocation = HexicalMain.id("textures/entity/magic_missile.png")
 	}
 }

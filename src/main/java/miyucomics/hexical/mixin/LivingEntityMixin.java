@@ -3,45 +3,46 @@ package miyucomics.hexical.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import miyucomics.hexical.features.wristpocket.WristpocketFieldKt;
-import net.minecraft.advancement.criterion.Criteria;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityStatuses;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.stat.Stats;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityEvent;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stats;
+import net.minecraft.world.level.gameevent.GameEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
-@SuppressWarnings("UnusedReturnValue")
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
 	@Shadow public abstract void setHealth(float health);
-	@Shadow public abstract boolean clearStatusEffects();
-	@Shadow public abstract boolean addStatusEffect(StatusEffectInstance effect);
+	@Shadow public abstract boolean removeAllEffects();
+	@Shadow public abstract boolean addEffect(MobEffectInstance effect);
 
-	@WrapOperation(method = "damage", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;tryUseTotem(Lnet/minecraft/entity/damage/DamageSource;)Z"))
+	@WrapOperation(method = "hurt", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;checkTotemDeathProtection(Lnet/minecraft/world/damagesource/DamageSource;)Z"))
 	private boolean undie(LivingEntity instance, DamageSource source, Operation<Boolean> original) {
-		if (!(instance instanceof ServerPlayerEntity player))
+		if (!(instance instanceof ServerPlayer player))
 			return original.call(instance, source);
 
 		ItemStack wristpocket = WristpocketFieldKt.getWristpocket(player);
-		if (wristpocket.isOf(Items.TOTEM_OF_UNDYING)) {
+		if (wristpocket.is(Items.TOTEM_OF_UNDYING)) {
 			WristpocketFieldKt.setWristpocket(player, ItemStack.EMPTY);
-			player.incrementStat(Stats.USED.getOrCreateStat(Items.TOTEM_OF_UNDYING));
-			Criteria.USED_TOTEM.trigger(player, wristpocket);
+			player.awardStat(Stats.ITEM_USED.get(Items.TOTEM_OF_UNDYING));
+			CriteriaTriggers.USED_TOTEM.trigger(player, wristpocket);
+			player.gameEvent(GameEvent.ITEM_INTERACT_FINISH);
 
 			setHealth(1.0f);
-			clearStatusEffects();
-			addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 900, 1));
-			addStatusEffect(new StatusEffectInstance(StatusEffects.ABSORPTION, 100, 1));
-			addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 800, 0));
-			player.getWorld().sendEntityStatus((Entity) (Object) this, EntityStatuses.USE_TOTEM_OF_UNDYING);
+			removeAllEffects();
+			addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
+			addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
+			addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
+			player.level().broadcastEntityEvent((Entity) (Object) this, EntityEvent.TALISMAN_ACTIVATE);
 
 			return true;
 		}

@@ -1,7 +1,0 @@
-{
-  "type": "hexical:conjure_flora",
-  "block": {
-    "name": "minecraft:blue_orchid"
-  },
-  "cost": 5000
-}

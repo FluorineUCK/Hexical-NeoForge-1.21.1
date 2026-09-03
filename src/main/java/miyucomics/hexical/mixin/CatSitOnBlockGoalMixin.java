@@ -1,12 +1,12 @@
 package miyucomics.hexical.mixin;
 
 import miyucomics.hexical.inits.HexicalBlocks;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.FacingBlock;
-import net.minecraft.entity.ai.goal.CatSitOnBlockGoal;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.WorldView;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.DirectionalBlock;
+import net.minecraft.world.entity.ai.goal.CatSitOnBlockGoal;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.LevelReader;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -14,16 +14,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = CatSitOnBlockGoal.class)
 class CatSitOnBlockGoalMixin {
-	@Inject(method = "isTargetPos(Lnet/minecraft/world/WorldView;Lnet/minecraft/util/math/BlockPos;)Z", at = @At("RETURN"), cancellable = true)
-	void sits(WorldView world, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+	@Inject(method = "isValidTarget(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;)Z", at = @At("RETURN"), cancellable = true)
+	void sits(LevelReader world, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
 		if (cir.getReturnValue())
 			return;
-		if (!world.isAir(pos.up())) {
+		if (!world.isEmptyBlock(pos.above())) {
 			cir.setReturnValue(false);
 			return;
 		}
 		BlockState state = world.getBlockState(pos);
-		if (state.isOf(HexicalBlocks.SENTINEL_BED_BLOCK) && state.get(FacingBlock.FACING) == Direction.UP)
+		if (state.is(HexicalBlocks.SENTINEL_BED_BLOCK) && state.getValue(DirectionalBlock.FACING) == Direction.UP)
 			cir.setReturnValue(true);
 	}
 }

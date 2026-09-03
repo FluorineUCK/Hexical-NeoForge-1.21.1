@@ -1,7 +1,0 @@
-{
-  "type": "hexical:conjure_flora",
-  "block": {
-    "name": "minecraft:seagrass"
-  },
-  "cost": 3500
-}

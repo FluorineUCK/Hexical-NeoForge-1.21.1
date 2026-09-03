@@ -1,9 +1,8 @@
 package miyucomics.hexical.features.dyes
 
-import net.minecraft.text.Style
-import net.minecraft.text.Text
-import net.minecraft.util.DyeColor
-import kotlin.enums.enumEntries
+import net.minecraft.network.chat.Style
+import net.minecraft.network.chat.Component
+import net.minecraft.world.item.DyeColor
 
 enum class DyeOption(val replacement: String, val color: Int, val dyeColor: DyeColor?) {
 	UNCOLORED("", 0xFF00FF, null),
@@ -24,9 +23,9 @@ enum class DyeOption(val replacement: String, val color: Int, val dyeColor: DyeC
 	RED("red", 11546150, DyeColor.RED),
 	BLACK("black", 0x1D1D21, DyeColor.BLACK);
 
-	val coloredText: Text get() = Text.translatable("dye.hexical.${name.lowercase()}").setStyle(Style.EMPTY.withColor(color))
+	val coloredText: Component get() = Component.translatable("dye.hexical.${name.lowercase()}").setStyle(Style.EMPTY.withColor(color))
 
 	companion object {
-		fun fromDyeColor(dyeColor: DyeColor?) = enumEntries<DyeOption>().first { it.dyeColor == dyeColor }
+		fun fromDyeColor(dyeColor: DyeColor?) = enumValues<DyeOption>().first { it.dyeColor == dyeColor }
 	}
 }

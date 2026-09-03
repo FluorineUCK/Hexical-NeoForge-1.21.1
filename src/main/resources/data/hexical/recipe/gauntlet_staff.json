@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "I": {
+      "item": "minecraft:copper_ingot"
+    },
+    "A": {
+      "item": "hexcasting:charged_amethyst"
+    }
+  },
+  "pattern": [
+    " I ",
+    "IAI",
+    "II "
+  ],
+  "result": {
+    "id": "hexical:gauntlet_staff"
+  }
+}

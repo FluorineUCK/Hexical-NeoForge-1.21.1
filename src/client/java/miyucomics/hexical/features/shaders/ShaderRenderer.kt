@@ -1,13 +1,13 @@
 package miyucomics.hexical.features.shaders
 
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.gl.PostEffectProcessor
-import net.minecraft.util.Identifier
+import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.PostChain
+import net.minecraft.resources.ResourceLocation
 import java.io.IOException
 
 object ShaderRenderer {
-    private var activeShader: PostEffectProcessor? = null
-    private var lastShader: PostEffectProcessor? = null
+    private var activeShader: PostChain? = null
+    private var lastShader: PostChain? = null
     private var lastWidth = 0
     private var lastHeight = 0
 
@@ -23,30 +23,29 @@ object ShaderRenderer {
         }
 
         updateEffectSize(activeShader!!)
-        activeShader!!.render(deltaTick)
-        MinecraftClient.getInstance().framebuffer.beginWrite(false)
+        activeShader!!.process(deltaTick)
+        Minecraft.getInstance().mainRenderTarget.bindWrite(false)
     }
 
-    fun setEffect(location: Identifier?) {
-        activeShader?.close()
+    fun setEffect(location: ResourceLocation?) {
         if (location == null) {
             activeShader = null
             return
         }
         try {
-            val client = MinecraftClient.getInstance()
-            activeShader = PostEffectProcessor(client.textureManager, client.resourceManager, client.framebuffer, location)
+            val client = Minecraft.getInstance()
+            activeShader = PostChain(client.textureManager, client.resourceManager, client.mainRenderTarget, location)
         } catch (_: IOException) {}
     }
 
-    private fun updateEffectSize(effect: PostEffectProcessor) {
-        val client = MinecraftClient.getInstance()
-        val width = client.window.width
-        val height = client.window.height
-        if ((width != lastWidth || height != lastHeight) && width != 0 && height != 0) {
+    private fun updateEffectSize(effect: PostChain) {
+        val client = Minecraft.getInstance()
+        val width = client.window.screenWidth
+        val height = client.window.screenHeight
+        if (width != lastWidth || height != lastHeight) {
             lastWidth = width
             lastHeight = height
-            effect.setupDimensions(width, height)
+            effect.resize(width, height)
         }
     }
 }

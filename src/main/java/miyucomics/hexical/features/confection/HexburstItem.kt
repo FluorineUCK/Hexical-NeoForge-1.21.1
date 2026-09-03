@@ -3,38 +3,40 @@ package miyucomics.hexical.features.confection
 import at.petrak.hexcasting.api.casting.iota.GarbageIota
 import at.petrak.hexcasting.api.casting.iota.IotaType
 import at.petrak.hexcasting.api.utils.asTranslatedComponent
-import at.petrak.hexcasting.api.utils.containsTag
 import miyucomics.hexical.misc.CastingUtils
-import net.minecraft.client.item.TooltipContext
-import net.minecraft.entity.LivingEntity
-import net.minecraft.item.FoodComponent
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.server.world.ServerWorld
-import net.minecraft.text.Text
-import net.minecraft.util.Formatting
-import net.minecraft.world.World
+import miyucomics.hexical.hexcompat.ItemStackDataCompat
+import net.minecraft.world.item.TooltipFlag
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.food.FoodProperties
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.network.chat.Component
+import net.minecraft.ChatFormatting
+import net.minecraft.world.level.Level
 
-object HexburstItem : Item(Settings().maxCount(16).food(FoodComponent.Builder().alwaysEdible().snack().build())) {
-	override fun getMaxUseTime(stack: ItemStack) = 10
-	override fun finishUsing(stack: ItemStack, world: World, user: LivingEntity): ItemStack {
-		if (world.isClient)
-			return super.finishUsing(stack, world, user)
-		if (user !is ServerPlayerEntity)
-			return super.finishUsing(stack, world, user)
-		CastingUtils.giveIota(user, if (stack.orCreateNbt.contains("iota"))
-			IotaType.deserialize(stack.orCreateNbt.getCompound("iota")!!, world as ServerWorld)
+class HexburstItem : Item(Properties().stacksTo(16).food(FoodProperties.Builder().alwaysEdible().fast().build())) {
+	override fun getUseDuration(stack: ItemStack, entity: LivingEntity) = 10
+	override fun finishUsingItem(stack: ItemStack, world: Level, user: LivingEntity): ItemStack {
+		if (world.isClientSide)
+			return super.finishUsingItem(stack, world, user)
+		if (user !is ServerPlayer)
+			return super.finishUsingItem(stack, world, user)
+		val data = ItemStackDataCompat.customData(stack)
+		CastingUtils.giveIota(user, if (data.contains("iota"))
+			miyucomics.hexical.hexcompat.deserializeIotaOrThrow(data.getCompound("iota"), world as ServerLevel)
 		else
 			GarbageIota())
-		return super.finishUsing(stack, world, user)
+		return super.finishUsingItem(stack, world, user)
 	}
 
-	override fun appendTooltip(stack: ItemStack, world: World?, list: MutableList<Text>, context: TooltipContext) {
-		if (stack.nbt == null || !stack.containsTag("iota"))
+	override fun appendHoverText(stack: ItemStack, tooltipContext: TooltipContext, list: MutableList<Component>, context: TooltipFlag) {
+		val data = ItemStackDataCompat.customData(stack)
+		if (!data.contains("iota"))
 			return
 		list.add("hexical.hexburst.iota".asTranslatedComponent(
-			IotaType.getDisplay(stack.orCreateNbt.getCompound("iota"))
-		).formatted(Formatting.GRAY))
+			miyucomics.hexical.hexcompat.displayIota(data.getCompound("iota"))
+		).withStyle(ChatFormatting.GRAY))
 	}
 }

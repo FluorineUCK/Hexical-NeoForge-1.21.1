@@ -1,37 +1,44 @@
 package miyucomics.hexical.features.telepathy
 
-import miyucomics.hexical.HexicalMain
 import miyucomics.hexical.features.evocation.ServerEvocationManager
 import miyucomics.hexical.misc.InitHook
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.util.Identifier
+import miyucomics.hexical.network.KeyStatePayload
+import net.minecraft.server.level.ServerPlayer
 
 object ServerPeripheralReceiver : InitHook() {
-	val PRESSED_KEY_CHANNEL: Identifier = HexicalMain.id("press_key")
-	val RELEASED_KEY_CHANNEL: Identifier = HexicalMain.id("release_key")
-	val SCROLL_CHANNEL: Identifier = HexicalMain.id("scroll")
+	private val ACCEPTED_KEYS = setOf(
+		"key.forward",
+		"key.left",
+		"key.right",
+		"key.back",
+		"key.jump",
+		"key.sneak",
+		"key.use",
+		"key.attack",
+		"key.hexical.telepathy",
+		"key.hexical.evoke"
+	)
 
-	override fun init() {
-		ServerPlayNetworking.registerGlobalReceiver(PRESSED_KEY_CHANNEL) { server, player, _, buf, _ ->
-			val key = buf.readString()
-			player.serverKeybindActive()[key] = true
-			player.serverKeybindDuration()[key] = 0
-			if (key == "key.hexical.telepathy")
-				player.serverScroll = 0
-			if (key == "key.hexical.evoke")
+	override fun init() = Unit
+
+	@JvmStatic
+	fun handleKeyState(player: ServerPlayer, payload: KeyStatePayload) {
+		if (payload.key !in ACCEPTED_KEYS) return
+		val server = player.server ?: return
+		player.serverKeybindActive()[payload.key] = payload.pressed
+		player.serverKeybindDuration()[payload.key] = 0
+		if (payload.pressed && payload.key == "key.hexical.telepathy")
+			player.serverScroll = 0
+		if (payload.key == "key.hexical.evoke") {
+			if (payload.pressed)
 				ServerEvocationManager.startEvocation(player, server)
-		}
-
-		ServerPlayNetworking.registerGlobalReceiver(RELEASED_KEY_CHANNEL) { server, player, _, buf, _ ->
-			val key = buf.readString()
-			player.serverKeybindActive()[key] = false
-			player.serverKeybindDuration()[key] = 0
-			if (key == "key.hexical.evoke")
+			else
 				ServerEvocationManager.endEvocation(player, server)
 		}
+	}
 
-		ServerPlayNetworking.registerGlobalReceiver(SCROLL_CHANNEL) { _, player, _, buf, _ ->
-			player.serverScroll += buf.readInt()
-		}
+	@JvmStatic
+	fun handleScroll(player: ServerPlayer, delta: Int) {
+		player.serverScroll += delta.coerceIn(-64, 64)
 	}
 }

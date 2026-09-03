@@ -8,54 +8,56 @@ import at.petrak.hexcasting.api.utils.putCompound
 import at.petrak.hexcasting.api.utils.serializeToNBT
 import at.petrak.hexcasting.common.items.magic.ItemPackagedHex
 import miyucomics.hexical.inits.HexicalSounds
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.ItemStack
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.server.world.ServerWorld
-import net.minecraft.sound.SoundCategory
-import net.minecraft.util.Hand
-import net.minecraft.util.Rarity
-import net.minecraft.util.TypedActionResult
-import net.minecraft.util.UseAction
-import net.minecraft.world.World
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.sounds.SoundSource
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.item.Rarity
+import net.minecraft.world.InteractionResultHolder
+import net.minecraft.world.item.UseAnim
+import net.minecraft.world.level.Level
+import miyucomics.hexical.hexcompat.ItemStackDataCompat
 
-object HandLampItem : ItemPackagedHex(Settings().maxCount(1).rarity(Rarity.RARE)) {
-	override fun use(world: World, user: PlayerEntity, hand: Hand): TypedActionResult<ItemStack> {
-		val stack = user.getStackInHand(hand)
-		if (!hasHex(stack)) return TypedActionResult.fail(stack)
-		val stackNbt = stack.orCreateNbt
-		world.playSound(user.x, user.y, user.z, HexicalSounds.LAMP_ACTIVATE, SoundCategory.MASTER, 1f, 1f, true)
-		if (!world.isClient) {
-			stackNbt.putCompound("position", user.eyePos.serializeToNBT())
-			stackNbt.putCompound("rotation", user.rotationVector.serializeToNBT())
-			stackNbt.putCompound("velocity", user.velocity.serializeToNBT())
-			stackNbt.putCompound("storage", IotaType.serialize(NullIota()))
-			stackNbt.putLong("start_time", world.time)
+class HandLampItem : ItemPackagedHex(Properties().stacksTo(1).rarity(Rarity.RARE)) {
+	override fun use(world: Level, user: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+		val stack = user.getItemInHand(hand)
+		if (!hasHex(stack)) return InteractionResultHolder.fail(stack)
+		world.playLocalSound(user.x, user.y, user.z, HexicalSounds.LAMP_ACTIVATE, SoundSource.MASTER, 1f, 1f, true)
+		if (!world.isClientSide) {
+			ItemStackDataCompat.update(stack) { data ->
+				data.put("position", user.eyePosition.serializeToNBT())
+				data.put("rotation", user.lookAngle.serializeToNBT())
+				data.put("velocity", user.deltaMovement.serializeToNBT())
+				data.put("storage", miyucomics.hexical.hexcompat.serializeIota(NullIota()))
+				data.putLong("start_time", world.gameTime)
+			}
 		}
-		user.setCurrentHand(hand)
-		return TypedActionResult.success(stack)
+		user.startUsingItem(hand)
+		return InteractionResultHolder.success(stack)
 	}
 
-	override fun usageTick(world: World, user: LivingEntity, stack: ItemStack, remainingUseTicks: Int) {
-		if (world.isClient) return
+	override fun onUseTick(world: Level, user: LivingEntity, stack: ItemStack, remainingUseTicks: Int) {
+		if (world.isClientSide) return
 		if (getMedia(stack) == 0L) return
-		val vm = CastingVM(CastingImage(), LampCastEnv(user as ServerPlayerEntity, user.activeHand, false, stack))
-		vm.queueExecuteAndWrapIotas((stack.item as HandLampItem).getHex(stack, world as ServerWorld)!!, world)
+		val vm = CastingVM(CastingImage(), HandLampCastEnv(user as ServerPlayer, InteractionHand.MAIN_HAND, false, stack))
+		vm.queueExecuteAndWrapIotas((stack.item as HandLampItem).getHex(stack, world as ServerLevel)!!, world)
 	}
 
-	override fun onStoppedUsing(stack: ItemStack, world: World, user: LivingEntity, remainingUseTicks: Int) {
-		if (!world.isClient) {
-			val vm = CastingVM(CastingImage(), LampCastEnv(user as ServerPlayerEntity, user.activeHand, true, stack))
-			vm.queueExecuteAndWrapIotas((stack.item as HandLampItem).getHex(stack, world as ServerWorld)!!, world)
+	override fun releaseUsing(stack: ItemStack, world: Level, user: LivingEntity, remainingUseTicks: Int) {
+		if (!world.isClientSide) {
+			val vm = CastingVM(CastingImage(), HandLampCastEnv(user as ServerPlayer, InteractionHand.MAIN_HAND, true, stack))
+			vm.queueExecuteAndWrapIotas((stack.item as HandLampItem).getHex(stack, world as ServerLevel)!!, world)
 		}
-		world.playSound(user.x, user.y, user.z, HexicalSounds.LAMP_DEACTIVATE, SoundCategory.MASTER, 1f, 1f, true)
+		world.playLocalSound(user.x, user.y, user.z, HexicalSounds.LAMP_DEACTIVATE, SoundSource.MASTER, 1f, 1f, true)
 	}
 
-	override fun getMaxUseTime(stack: ItemStack) = Int.MAX_VALUE
+	override fun getUseDuration(stack: ItemStack, entity: LivingEntity) = Int.MAX_VALUE
 	override fun canDrawMediaFromInventory(stack: ItemStack) = false
-	override fun getUseAction(stack: ItemStack) = UseAction.BOW
-	override fun canRecharge(stack: ItemStack) = false
+	override fun getUseAnimation(stack: ItemStack) = UseAnim.BOW
+	override fun canRecharge(stack: ItemStack?) = false
 	override fun breakAfterDepletion() = false
 	override fun cooldown() = 0
 }

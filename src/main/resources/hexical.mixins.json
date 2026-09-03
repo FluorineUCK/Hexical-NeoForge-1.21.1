@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "miyucomics.hexical.mixin",
-	"compatibilityLevel": "JAVA_17",
+	"compatibilityLevel": "JAVA_21",
 	"minVersion": "0.8",
 	"mixins": [
 		"BlockAkashicBookshelfMixin",
@@ -10,22 +10,24 @@
 		"CastingVMMixin",
 		"CatSitOnBlockGoalMixin",
 		"CircleCastEnvMixin",
+		"CreeperAccessor",
 		"DispenserBlockInvoker",
-		"EntityMixin",
+		"ItemAbacusMixin",
 		"ItemEntityMixin",
+		"ItemStackMixin",
 		"LivingEntityMixin",
 		"MediaHelperMixin",
 		"OpEraseMixin",
 		"OpReadMixin",
 		"PatternIotaMixin",
-		"PistonBlockMixin",
+		"ParrotAccessor",
 		"PlayerBasedCastEnvMixin",
 		"PlayerEntityMixin",
-		"RedstoneViewMixin",
+		"PufferfishAccessor",
 		"SnifferBrainMixin",
 		"SnifferEntityMixin",
-		"WanderingTraderEntityMixin",
-		"WorldChunkMixin"
+		"SquidInvoker",
+		"WanderingTraderEntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

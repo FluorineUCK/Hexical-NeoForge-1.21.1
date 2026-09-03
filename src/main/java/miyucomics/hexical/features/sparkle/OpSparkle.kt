@@ -7,7 +7,7 @@ import at.petrak.hexcasting.api.casting.getPositiveIntUnderInclusive
 import at.petrak.hexcasting.api.casting.getVec3
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.misc.MediaConstants
-import net.minecraft.util.math.Vec3d
+import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
 
 object OpSparkle : SpellAction {
@@ -20,9 +20,16 @@ object OpSparkle : SpellAction {
 		return SpellAction.Result(Spell(position, color, lifespan), MediaConstants.DUST_UNIT / 100, listOf())
 	}
 
-	private data class Spell(val position: Vec3d, val color: Vec3d, val lifespan: Int) : RenderedSpell {
+	private data class Spell(val position: Vec3, val color: Vec3, val lifespan: Int) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
-			env.world.spawnParticles(SparkleParticleEffect(Vector3f(color.x.toFloat(), color.y.toFloat(), color.z.toFloat()), lifespan), position.x, position.y, position.z, 1, 0.0, 0.0, 0.0, 0.0)
+			env.world.sendParticles(
+				SparkleParticleEffect(
+					Vector3f(
+						color.x.toFloat(),
+						color.y.toFloat(),
+						color.z.toFloat()
+					), lifespan
+				), position.x, position.y, position.z, 1, 0.0, 0.0, 0.0, 0.0)
 		}
 	}
 }

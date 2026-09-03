@@ -1,12 +1,22 @@
 from importlib.resources import Package
+from typing_extensions import override
+
+from .book.page import pages
+from .book import hexical_recipe
+
+from hexdoc.plugin import (
+    HookReturn,
+    ModPlugin,
+    ModPluginImpl,
+    ModPluginWithBook,
+    hookimpl,
+)
 
 import hexdoc_hexical
-from hexdoc.plugin import (HookReturn, ModPlugin, ModPluginImpl, ModPluginWithBook, hookimpl)
-from typing_extensions import override
 
 from .__gradle_version__ import FULL_VERSION, GRADLE_VERSION
 from .__version__ import PY_VERSION
-from .book import dyeing_page, flora_page, transmuting_page
+
 
 class HexicalPlugin(ModPluginImpl):
     @staticmethod
@@ -17,7 +27,8 @@ class HexicalPlugin(ModPluginImpl):
     @staticmethod
     @hookimpl
     def hexdoc_load_tagged_unions() -> HookReturn[Package]:
-        return [dyeing_page, flora_page, transmuting_page]
+        return [hexical_recipe, pages]
+
 
 class HexicalModPlugin(ModPluginWithBook):
     @property
@@ -42,9 +53,13 @@ class HexicalModPlugin(ModPluginWithBook):
 
     @override
     def resource_dirs(self) -> HookReturn[Package]:
+        # lazy import because generated may not exist when this file is loaded
+        # eg. when generating the contents of generated
+        # so we only want to import it if we actually need it
         from ._export import generated
-        return generated
 
+        return generated
+    
     @override
     def jinja_template_root(self) -> tuple[Package, str]:
         return hexdoc_hexical, "_templates"

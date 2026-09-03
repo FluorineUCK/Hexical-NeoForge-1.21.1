@@ -1,0 +1,10 @@
+{
+  "type": "hexical:transmuting",
+  "cost": 50000,
+  "input": {
+    "item": "minecraft:obsidian"
+  },
+  "output": {
+    "id": "minecraft:crying_obsidian"
+  }
+}

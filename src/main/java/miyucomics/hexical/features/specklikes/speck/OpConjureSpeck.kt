@@ -7,11 +7,14 @@ import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
 import at.petrak.hexcasting.api.casting.getVec3
 import at.petrak.hexcasting.api.casting.iota.EntityIota
 import at.petrak.hexcasting.api.casting.iota.Iota
+import at.petrak.hexcasting.api.casting.iota.PatternIota
+import at.petrak.hexcasting.api.casting.math.HexDir
+import at.petrak.hexcasting.api.casting.math.HexPattern
 import at.petrak.hexcasting.api.misc.MediaConstants
 import miyucomics.hexical.inits.HexicalAdvancements
-import net.minecraft.command.argument.EntityAnchorArgumentType
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.util.math.Vec3d
+import net.minecraft.commands.arguments.EntityAnchorArgument
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.phys.Vec3
 
 object OpConjureSpeck : SpellAction {
 	override val argc = 3
@@ -21,21 +24,23 @@ object OpConjureSpeck : SpellAction {
 		return SpellAction.Result(Spell(position, args.getVec3(2, argc), args[0]), MediaConstants.DUST_UNIT / 100, listOf())
 	}
 
-	private data class Spell(val position: Vec3d, val rotation: Vec3d, val iota: Iota) : RenderedSpell {
+	private data class Spell(val position: Vec3, val rotation: Vec3, val iota: Iota) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {}
 		override fun cast(env: CastingEnvironment, image: CastingImage): CastingImage {
-			if (env.castingEntity is ServerPlayerEntity)
-				HexicalAdvancements.AR.trigger(env.castingEntity as ServerPlayerEntity)
-
-			val speck = SpeckEntity(env.world).apply {
-				setPosition(position.subtract(0.0, standingEyeHeight.toDouble(), 0.0))
-				lookAt(EntityAnchorArgumentType.EntityAnchor.FEET, pos.add(rotation))
-				setText(iota.display())
+			if (env.castingEntity is ServerPlayer) {
+				HexicalAdvancements.AR.trigger(env.castingEntity as ServerPlayer)
+				if (iota is PatternIota && iota.pattern == HexPattern.fromAngles("deaqq", HexDir.SOUTH_EAST))
+					HexicalAdvancements.HEXXY.trigger(env.castingEntity as ServerPlayer)
 			}
 
-			env.world.spawnEntity(speck)
+			val speck = SpeckEntity(env.world)
+			speck.setPos(position.subtract(0.0, speck.eyeHeight.toDouble(), 0.0))
+			speck.lookAt(EntityAnchorArgument.Anchor.FEET, speck.position().add(rotation))
+			speck.setPigment(env.pigment)
+			speck.setIota(iota)
+			env.world.addFreshEntity(speck)
 
-			return image.copy(stack = image.stack.toList().plus(EntityIota(speck)))
+			return image.copy(stack = image.stack.appended(EntityIota(speck)))
 		}
 	}
 }

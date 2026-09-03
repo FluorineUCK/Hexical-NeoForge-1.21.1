@@ -1,8 +1,0 @@
-{
-  "parent": "hexical:block/pedestal_base",
-  "textures": {
-    "bottom": "hexical:block/pedestal_bottom",
-    "side": "hexical:block/pink_carpeted_pedestal_side",
-    "top": "hexical:block/pink_carpeted_pedestal_top"
-  }
-}

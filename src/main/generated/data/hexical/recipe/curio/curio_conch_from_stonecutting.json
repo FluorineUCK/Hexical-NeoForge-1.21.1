@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "hexcasting:charged_amethyst"
+  },
+  "result": {
+    "id": "hexical:curio_conch",
+    "count": 1
+  }
+}

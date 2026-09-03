@@ -11,9 +11,9 @@ import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.misc.MediaConstants
-import net.minecraft.entity.ItemEntity
-import net.minecraft.item.ItemStack
-import net.minecraft.util.math.Vec3d
+import net.minecraft.world.entity.item.ItemEntity
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.phys.Vec3
 
 object OpSleight : SpellAction {
 	override val argc = 1
@@ -22,9 +22,9 @@ object OpSleight : SpellAction {
 
 		when (args[0]) {
 			is EntityIota -> {
-				val item = args.getItemEntity(0, argc)
+				val item = args.getItemEntity(env.world, 0, argc)
 				env.assertEntityInRange(item)
-				return SpellAction.Result(SwapSpell(item, wristpocket), MediaConstants.DUST_UNIT / 4, listOf(ParticleSpray.burst(item.pos, 1.0)))
+				return SpellAction.Result(SwapSpell(item, wristpocket), MediaConstants.DUST_UNIT / 4, listOf(ParticleSpray.burst(item.position(), 1.0)))
 			}
 			is Vec3Iota -> {
 				val position = args.getVec3(0, argc)
@@ -35,19 +35,19 @@ object OpSleight : SpellAction {
 		}
 	}
 
-	private data class ConjureSpell(val position: Vec3d, val wristpocket: ItemStack) : RenderedSpell {
+	private data class ConjureSpell(val position: Vec3, val wristpocket: ItemStack) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
 			if (!wristpocket.isEmpty)
-				env.world.spawnEntity(ItemEntity(env.world, position.x, position.y, position.z, wristpocket))
+				env.world.addFreshEntity(ItemEntity(env.world, position.x, position.y, position.z, wristpocket))
 			WristpocketUtils.setWristpocketStack(env, ItemStack.EMPTY)
 		}
 	}
 
 	private data class SwapSpell(val item: ItemEntity, val wristpocket: ItemStack) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
-			WristpocketUtils.setWristpocketStack(env, item.stack)
+			WristpocketUtils.setWristpocketStack(env, item.item)
 			if (!wristpocket.isEmpty)
-				item.stack = wristpocket
+				item.item = wristpocket
 			else
 				item.discard()
 		}

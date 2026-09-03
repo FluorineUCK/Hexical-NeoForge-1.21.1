@@ -1,7 +1,0 @@
-{
-  "type": "hexical:conjure_flora",
-  "block": {
-    "name": "minecraft:warped_roots"
-  },
-  "cost": 6000
-}

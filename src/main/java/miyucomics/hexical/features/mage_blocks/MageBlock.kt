@@ -4,64 +4,99 @@ import miyucomics.hexical.features.mage_blocks.modifiers.BouncyModifier
 import miyucomics.hexical.features.mage_blocks.modifiers.RedstoneModifier
 import miyucomics.hexical.features.mage_blocks.modifiers.VolatileModifier
 import miyucomics.hexical.inits.HexicalBlocks
-import net.minecraft.block.*
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.block.entity.BlockEntityTicker
-import net.minecraft.block.entity.BlockEntityType
-import net.minecraft.entity.Entity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.sound.BlockSoundGroup
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.world.BlockView
-import net.minecraft.world.World
+import net.minecraft.world.level.block.*
+import net.minecraft.world.level.block.state.BlockBehaviour.Properties
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.BlockEntityTicker
+import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.sounds.SoundSource
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.world.phys.shapes.VoxelShape
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.CollisionContext
+import net.minecraft.world.level.material.MapColor
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.gameevent.GameEvent
 
-class MageBlock : Block(Settings.create().nonOpaque().dropsNothing().breakInstantly().mapColor(MapColor.CLEAR).suffocates { _, _, _ -> false }.blockVision { _, _, _ -> false }.allowsSpawning { _, _, _, _ -> false }.sounds(BlockSoundGroup.AMETHYST_CLUSTER)), BlockEntityProvider {
-	override fun emitsRedstonePower(state: BlockState) = true
-	override fun getWeakRedstonePower(state: BlockState, world: BlockView, pos: BlockPos, direction: Direction): Int {
-		val blockEntity = world.getBlockEntity(pos)  as? MageBlockEntity ?: return 0
+class MageBlock : Block(Properties.of().noOcclusion().noLootTable().instabreak().mapColor(MapColor.NONE).isSuffocating { _, _, _ -> false }.isViewBlocking { _, _, _ -> false }.isValidSpawn { _, _, _, _ -> false }.sound(SoundType.AMETHYST_CLUSTER)), EntityBlock {
+	override fun isSignalSource(state: BlockState) = true
+	override fun getSignal(state: BlockState, world: BlockGetter, pos: BlockPos, direction: Direction): Int {
+		val blockEntity = world.getBlockEntity(pos)
+		if (blockEntity !is MageBlockEntity)
+			return 0
 		if (blockEntity.hasModifier(RedstoneModifier.TYPE))
 			return blockEntity.getModifier(RedstoneModifier.TYPE).power
 		return 0
 	}
 
-	override fun onLandedUpon(world: World, state: BlockState, pos: BlockPos, entity: Entity, fallDistance: Float) {
-		val blockEntity = world.getBlockEntity(pos) as? MageBlockEntity ?: return
+
+	override fun fallOn(world: Level, state: BlockState, pos: BlockPos, entity: Entity, fallDistance: Float) {
+		val blockEntity = world.getBlockEntity(pos) as MageBlockEntity
 		if (!blockEntity.hasModifier(BouncyModifier.TYPE))
-			super.onLandedUpon(world, state, pos, entity, fallDistance)
+			super.fallOn(world, state, pos, entity, fallDistance)
 	}
 
-	override fun onEntityLand(world: BlockView, entity: Entity) {
-		val blockEntity = world.getBlockEntity(entity.blockPos.add(0, -1, 0)) as? MageBlockEntity ?: return
+	override fun updateEntityAfterFallOn(world: BlockGetter, entity: Entity) {
+		val blockEntity = world.getBlockEntity(entity.blockPosition().offset(0, -1, 0))
+		if (blockEntity !is MageBlockEntity)
+			return
 		if (blockEntity.hasModifier(BouncyModifier.TYPE)) {
-			val velocity = entity.velocity
+			val velocity = entity.deltaMovement
 			if (velocity.y < 0) {
-				entity.setVelocity(velocity.x, -velocity.y, velocity.z)
+				entity.setDeltaMovement(velocity.x, -velocity.y, velocity.z)
 				entity.fallDistance = 0f
 			}
 		} else
-			super.onEntityLand(world, entity)
+			super.updateEntityAfterFallOn(world, entity)
 	}
 
-	override fun onBreak(world: World, position: BlockPos, state: BlockState, player: PlayerEntity?) {
+	override fun playerWillDestroy(world: Level, position: BlockPos, state: BlockState, player: Player): BlockState {
+		destroyMageBlock(world, position, state)
+		return super.playerWillDestroy(world, position, state, player)
+	}
+
+	fun destroyMageBlock(world: Level, position: BlockPos, state: BlockState) {
 		val blockEntity = world.getBlockEntity(position) as? MageBlockEntity ?: return
-		world.setBlockState(position, Blocks.AIR.defaultState)
+		world.setBlockAndUpdate(position, Blocks.AIR.defaultBlockState())
 
 		if (blockEntity.hasModifier(VolatileModifier.TYPE)) {
 			for (offset in Direction.stream()) {
-				val positionToTest = position.add(offset.vector)
+				val positionToTest = position.offset(offset.normal)
 				val otherState = world.getBlockState(positionToTest)
 				val block = otherState.block
 				if (block == HexicalBlocks.MAGE_BLOCK)
-					block.onBreak(world, positionToTest, otherState, player)
+					destroyMageBlock(world, positionToTest, otherState)
 			}
 		}
-
-		super.onBreak(world, position, state, player)
 	}
 
-	override fun createBlockEntity(pos: BlockPos, state: BlockState) = MageBlockEntity(pos, state)
-	override fun <T : BlockEntity> getTicker(pworld: World, pstate: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T> = BlockEntityTicker { world, position, state, blockEntity ->
-		(blockEntity  as? MageBlockEntity)?.modifiers?.forEach { it -> it.value.tick(world, position, state) }
+	override fun newBlockEntity(pos: BlockPos, state: BlockState) = MageBlockEntity(pos, state)
+	override fun <T : BlockEntity> getTicker(pworld: Level, pstate: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T> = BlockEntityTicker { world, position, state, blockEntity ->
+		(blockEntity as MageBlockEntity).modifiers.forEach { it -> it.value.tick(world, position, state) }
 	}
+
+	// defer shapes to disguise
+	private fun getBlockDisguise(world: BlockGetter, pos: BlockPos): BlockState? = (world.getBlockEntity(pos) as? MageBlockEntity)?.disguise
+
+	override fun getShape(state: BlockState, world: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
+		getBlockDisguise(world, pos)?.getShape(world, pos, context) ?: Shapes.block()
+
+	override fun getOcclusionShape(state: BlockState, world: BlockGetter, pos: BlockPos): VoxelShape =
+		getBlockDisguise(world, pos)?.getOcclusionShape(world, pos) ?: Shapes.block()
+
+	override fun getInteractionShape(state: BlockState, world: BlockGetter, pos: BlockPos): VoxelShape =
+		getBlockDisguise(world, pos)?.getInteractionShape(world, pos) ?: Shapes.block()
+
+	override fun getCollisionShape(state: BlockState, world: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
+		getBlockDisguise(world, pos)?.getCollisionShape(world, pos, context) ?: Shapes.block()
+
+	override fun getVisualShape(state: BlockState, world: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
+		getBlockDisguise(world, pos)?.getVisualShape(world, pos, context) ?: Shapes.block()
 }

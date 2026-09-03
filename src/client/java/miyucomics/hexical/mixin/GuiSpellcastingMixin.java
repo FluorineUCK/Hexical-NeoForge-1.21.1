@@ -4,9 +4,10 @@ import at.petrak.hexcasting.client.gui.GuiSpellcasting;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import miyucomics.hexical.inits.HexicalBlocks;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.core.Holder;
+import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,17 +19,17 @@ public class GuiSpellcastingMixin {
 	@Unique
 	double zoomFactor = 0;
 
-	@WrapOperation(method = "hexSize", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getAttributeValue(Lnet/minecraft/entity/attribute/EntityAttribute;)D"))
-	double thinkyCarpet(ClientPlayerEntity player, EntityAttribute entityAttribute, Operation<Double> original) {
+	@WrapOperation(method = "hexSize", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getAttributeValue(Lnet/minecraft/core/Holder;)D"))
+	double thinkyCarpet(LocalPlayer player, Holder<Attribute> entityAttribute, Operation<Double> original) {
 		long deltaTime = System.currentTimeMillis() - lastCounter;
 		lastCounter = System.currentTimeMillis();
 
-		if (player.getBlockStateAtPos().isOf(HexicalBlocks.CASTING_CARPET)) {
+		if (player.level().getBlockState(player.blockPosition()).is(HexicalBlocks.CASTING_CARPET)) {
 			zoomFactor += (double) deltaTime / 500;
 		} else {
 			zoomFactor -= (double) deltaTime / 500;
 		}
-		zoomFactor = MathHelper.clamp(zoomFactor, 0, 0.35);
+		zoomFactor = Mth.clamp(zoomFactor, 0, 0.35);
 
 		double returnValue = original.call(player, entityAttribute);
 		returnValue += zoomFactor;

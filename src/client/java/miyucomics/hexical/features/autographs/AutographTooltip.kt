@@ -1,29 +1,34 @@
 package miyucomics.hexical.features.autographs
 
-import at.petrak.hexcasting.api.pigment.FrozenPigment
 import miyucomics.hexical.ClientStorage
+import miyucomics.hexical.hexcompat.ItemStackDataCompat
+import miyucomics.hexical.hexcompat.deserializePigment
 import miyucomics.hexical.misc.InitHook
 import miyucomics.hexical.misc.TextUtilities
-import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtElement
-import net.minecraft.text.Text
-import net.minecraft.util.Formatting
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.Tag
+import net.minecraft.network.chat.Component
+import net.minecraft.ChatFormatting
 import java.util.function.Consumer
+import net.neoforged.neoforge.common.NeoForge
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent
 
 object AutographTooltip : InitHook() {
 	override fun init() {
-		ItemTooltipCallback.EVENT.register { stack, _, lines ->
-			val nbt = stack.nbt ?: return@register
-			if (!nbt.contains("autographs"))
-				return@register
+		NeoForge.EVENT_BUS.addListener(::onTooltip)
+	}
 
-			lines.add(Text.translatable("hexical.autograph.header").styled { style -> style.withColor(Formatting.GRAY) })
+	private fun onTooltip(event: ItemTooltipEvent) {
+		val nbt = ItemStackDataCompat.customData(event.itemStack)
+		if (!nbt.contains("autographs")) return
+		val lines = event.toolTip
 
-			nbt.getList("autographs", NbtCompound.COMPOUND_TYPE.toInt()).forEach(Consumer { element: NbtElement? ->
-				val compound = element as NbtCompound
-				lines.add(TextUtilities.getPigmentedText(compound.getString("name"), FrozenPigment.fromNBT(compound.getCompound("pigment")), offset = ClientStorage.ticks * 3f))
-			})
-		}
+		lines.add(Component.translatable("hexical.autograph.header").withStyle { style -> style.withColor(ChatFormatting.GRAY) })
+
+		nbt.getList("autographs", Tag.TAG_COMPOUND.toInt()).forEach(Consumer { element: Tag? ->
+			val compound = element as? CompoundTag ?: return@Consumer
+			val pigment = deserializePigment(compound.getCompound("pigment")) ?: return@Consumer
+			lines.add(TextUtilities.getPigmentedText(compound.getString("name"), pigment, offset = ClientStorage.ticks * 3f))
+		})
 	}
 }

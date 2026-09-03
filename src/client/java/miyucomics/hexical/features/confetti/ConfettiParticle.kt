@@ -2,18 +2,18 @@ package miyucomics.hexical.features.confetti
 
 import miyucomics.hexical.HexicalMain
 import net.minecraft.client.particle.*
-import net.minecraft.client.render.Camera
-import net.minecraft.client.render.VertexConsumer
-import net.minecraft.client.world.ClientWorld
-import net.minecraft.particle.DefaultParticleType
-import net.minecraft.util.math.MathHelper
-import net.minecraft.util.math.noise.OctaveSimplexNoiseSampler
-import net.minecraft.util.math.random.CheckedRandom
+import net.minecraft.client.Camera
+import com.mojang.blaze3d.vertex.VertexConsumer
+import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.particles.SimpleParticleType
+import net.minecraft.util.Mth
+import net.minecraft.world.level.levelgen.synth.PerlinSimplexNoise
+import net.minecraft.world.level.levelgen.LegacyRandomSource
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import kotlin.math.max
 
-class ConfettiParticle(world: ClientWorld, x: Double, y: Double, z: Double, dx: Double, dy: Double, dz: Double, sprite: SpriteProvider) : SpriteBillboardParticle(world, x, y, z) {
+class ConfettiParticle(world: ClientLevel, x: Double, y: Double, z: Double, dx: Double, dy: Double, dz: Double, sprite: SpriteSet) : TextureSheetParticle(world, x, y, z) {
 	private val particleId: Double
 	private var pitch = 0f
 	private var yaw = 0f
@@ -24,70 +24,70 @@ class ConfettiParticle(world: ClientWorld, x: Double, y: Double, z: Double, dx: 
 	private var deltaRoll = 0f
 
 	init {
-		this.setSprite(sprite)
+		this.pickSprite(sprite)
 		this.particleId = random.nextDouble()
-		this.velocityX = dx
-		this.velocityY = dy
-		this.velocityZ = dz
+		this.xd = dx
+		this.yd = dy
+		this.zd = dz
 
-		this.setBoundingBoxSpacing(0.001f, 0.001f)
-		this.gravityStrength = 0.2f
-		this.velocityMultiplier = 0.9f
-		this.maxAge = random.nextInt() * 400 + 300
-		this.scale *= 1.25f
+		this.setSize(0.001f, 0.001f)
+		this.gravity = 0.2f
+		this.friction = 0.9f
+		this.lifetime = random.nextInt(400) + 300
+		this.quadSize *= 1.25f
 	}
 
-	override fun buildGeometry(consumer: VertexConsumer, camera: Camera, deltaTick: Float) {
+	override fun render(consumer: VertexConsumer, camera: Camera, deltaTick: Float) {
 		val rotation = Quaternionf()
-			.rotateZ(MathHelper.lerp(deltaTick, this.prevAngle, this.angle))
-			.rotateY(MathHelper.lerp(deltaTick, this.prevYaw, this.yaw))
-			.rotateX(MathHelper.lerp(deltaTick, this.prevPitch, this.pitch))
+			.rotateZ(Mth.lerp(deltaTick, this.oRoll, this.roll))
+			.rotateY(Mth.lerp(deltaTick, this.prevYaw, this.yaw))
+			.rotateX(Mth.lerp(deltaTick, this.prevPitch, this.pitch))
 
 		val vertices = arrayOf(
-			Vector3f(-this.scale, -this.scale, 0f),
-			Vector3f(-this.scale, this.scale, 0f),
-			Vector3f(this.scale, this.scale, 0f),
-			Vector3f(this.scale, -this.scale, 0f)
+			Vector3f(-this.quadSize, -this.quadSize, 0f),
+			Vector3f(-this.quadSize, this.quadSize, 0f),
+			Vector3f(this.quadSize, this.quadSize, 0f),
+			Vector3f(this.quadSize, -this.quadSize, 0f)
 		).map { vertex ->
 			vertex.rotate(rotation).add(
-				(MathHelper.lerp(deltaTick, this.prevPosX.toFloat(), this.x.toFloat()) - camera.pos.x.toFloat()),
-				(MathHelper.lerp(deltaTick, this.prevPosY.toFloat(), this.y.toFloat()) - camera.pos.y.toFloat()),
-				(MathHelper.lerp(deltaTick, this.prevPosZ.toFloat(), this.z.toFloat()) - camera.pos.z.toFloat())
+				(Mth.lerp(deltaTick, this.xo.toFloat(), this.x.toFloat()) - camera.position.x.toFloat()),
+				(Mth.lerp(deltaTick, this.yo.toFloat(), this.y.toFloat()) - camera.position.y.toFloat()),
+				(Mth.lerp(deltaTick, this.zo.toFloat(), this.z.toFloat()) - camera.position.z.toFloat())
 			)
 		}
 
-		val light = this.getBrightness(deltaTick)
+		val light = this.getLightColor(deltaTick)
 		fun vertex(vertex: Vector3f, u: Float, v: Float) =
-			consumer.vertex(vertex.x().toDouble(), vertex.y().toDouble(), vertex.z().toDouble()).texture(u, v).color(this.red, this.green, this.blue, this.alpha).light(light).next()
+			consumer.addVertex(vertex.x(), vertex.y(), vertex.z()).setUv(u, v).setColor(this.rCol, this.gCol, this.bCol, this.alpha).setLight(light)
 
-		vertex(vertices[0], this.maxU, this.maxV)
-		vertex(vertices[1], this.maxU, this.minV)
-		vertex(vertices[2], this.minU, this.minV)
-		vertex(vertices[3], this.minU, this.maxV)
+		vertex(vertices[0], this.u1, this.v1)
+		vertex(vertices[1], this.u1, this.v0)
+		vertex(vertices[2], this.u0, this.v0)
+		vertex(vertices[3], this.u0, this.v1)
 
-		vertex(vertices[3], this.minU, this.maxV)
-		vertex(vertices[2], this.minU, this.minV)
-		vertex(vertices[1], this.maxU, this.minV)
-		vertex(vertices[0], this.maxU, this.maxV)
+		vertex(vertices[3], this.u0, this.v1)
+		vertex(vertices[2], this.u0, this.v0)
+		vertex(vertices[1], this.u1, this.v0)
+		vertex(vertices[0], this.u1, this.v1)
 	}
 
 	override fun tick() {
-		this.velocityX += X_NOISE.sample(particleId, age.toDouble(), false) / 100
-		this.velocityZ += Z_NOISE.sample(particleId, age.toDouble(), false) / 100
+		this.xd += X_NOISE.getValue(particleId, age.toDouble(), false) / 100
+		this.zd += Z_NOISE.getValue(particleId, age.toDouble(), false) / 100
 
 		this.prevYaw = this.yaw
 		this.prevPitch = this.pitch
-		this.prevAngle = this.angle
+		this.oRoll = this.roll
 
-		if (onGround || (this.x == this.prevPosX && this.z == this.prevPosZ && this.y == this.prevPosY && this.age != 0)) {
-			this.age = max(age.toDouble(), (this.maxAge - 20).toDouble()).toInt()
+		if (onGround || (this.x == this.xo && this.z == this.zo && this.y == this.yo && this.age != 0)) {
+			this.age = max(age.toDouble(), (this.lifetime - 20).toDouble()).toInt()
 		} else {
-			this.deltaYaw += (YAW_NOISE.sample(particleId, age.toDouble(), false)).toFloat() / 10f
-			this.deltaRoll += (ROLL_NOISE.sample(particleId, age.toDouble(), false)).toFloat() / 10f
-			this.deltaPitch += (PITCH_NOISE.sample(particleId, age.toDouble(), false)).toFloat() / 10f
+			this.deltaYaw += (YAW_NOISE.getValue(particleId, age.toDouble(), false)).toFloat() / 10f
+			this.deltaRoll += (ROLL_NOISE.getValue(particleId, age.toDouble(), false)).toFloat() / 10f
+			this.deltaPitch += (PITCH_NOISE.getValue(particleId, age.toDouble(), false)).toFloat() / 10f
 			this.yaw += this.deltaYaw
 			this.pitch += this.deltaPitch
-			this.angle += this.deltaRoll
+			this.roll += this.deltaRoll
 		}
 
 		this.deltaYaw *= 0.98f
@@ -97,24 +97,24 @@ class ConfettiParticle(world: ClientWorld, x: Double, y: Double, z: Double, dx: 
 		super.tick()
 	}
 
-	class Factory(private val sprite: SpriteProvider) : ParticleFactory<DefaultParticleType> {
-		override fun createParticle(typeIn: DefaultParticleType?, world: ClientWorld, x: Double, y: Double, z: Double, dx: Double, dy: Double, dz: Double): Particle {
+	class Factory(private val sprite: SpriteSet) : ParticleProvider<SimpleParticleType> {
+		override fun createParticle(typeIn: SimpleParticleType, world: ClientLevel, x: Double, y: Double, z: Double, dx: Double, dy: Double, dz: Double): Particle {
 			val particle = ConfettiParticle(world, x, y, z, dx, dy, dz, sprite)
-			particle.yaw = HexicalMain.RANDOM.nextFloat() * MathHelper.TAU
-			particle.pitch = HexicalMain.RANDOM.nextFloat() * MathHelper.TAU
-			particle.angle = HexicalMain.RANDOM.nextFloat() * MathHelper.TAU
+			particle.yaw = HexicalMain.RANDOM.nextFloat() * Mth.TWO_PI
+			particle.pitch = HexicalMain.RANDOM.nextFloat() * Mth.TWO_PI
+			particle.roll = HexicalMain.RANDOM.nextFloat() * Mth.TWO_PI
 			return particle
 		}
 	}
 
-	override fun getType(): ParticleTextureSheet = ParticleTextureSheet.PARTICLE_SHEET_TRANSLUCENT
+	override fun getRenderType(): ParticleRenderType = ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT
 	companion object {
-		private val X_NOISE: OctaveSimplexNoiseSampler = noise(58637214)
-		private val Z_NOISE: OctaveSimplexNoiseSampler = noise(823917)
-		private val YAW_NOISE: OctaveSimplexNoiseSampler = noise(28943157)
-		private val ROLL_NOISE: OctaveSimplexNoiseSampler = noise(80085)
-		private val PITCH_NOISE: OctaveSimplexNoiseSampler = noise(49715286)
+		private val X_NOISE: PerlinSimplexNoise = noise(58637214)
+		private val Z_NOISE: PerlinSimplexNoise = noise(823917)
+		private val YAW_NOISE: PerlinSimplexNoise = noise(28943157)
+		private val ROLL_NOISE: PerlinSimplexNoise = noise(80085)
+		private val PITCH_NOISE: PerlinSimplexNoise = noise(49715286)
 		private fun noise(seed: Int) =
-			OctaveSimplexNoiseSampler(CheckedRandom(seed.toLong()), listOf(-7, -2, -1, 0, 1, 2))
+			PerlinSimplexNoise(LegacyRandomSource(seed.toLong()), listOf(-7, -2, -1, 0, 1, 2))
 	}
 }

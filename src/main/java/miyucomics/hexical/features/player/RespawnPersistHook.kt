@@ -1,12 +1,15 @@
 package miyucomics.hexical.features.player
 
 import miyucomics.hexical.misc.InitHook
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
+import net.neoforged.neoforge.common.NeoForge
+import net.neoforged.neoforge.event.entity.player.PlayerEvent
 
 object RespawnPersistHook : InitHook() {
 	override fun init() {
-		ServerPlayerEvents.AFTER_RESPAWN.register { old, new, alive ->
-			new.getHexicalPlayerManager().handleRespawn(new, old)
-		}
+		NeoForge.EVENT_BUS.addListener(::onClone)
+	}
+
+	private fun onClone(event: PlayerEvent.Clone) {
+		event.entity.getHexicalPlayerManager().handleRespawn(event.entity, event.original)
 	}
 }

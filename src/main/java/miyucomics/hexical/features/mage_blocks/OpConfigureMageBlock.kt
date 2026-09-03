@@ -8,9 +8,9 @@ import at.petrak.hexcasting.api.casting.getBlockPos
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapBadBlock
 import miyucomics.hexical.inits.HexicalAdvancements
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.core.BlockPos
+import net.minecraft.world.phys.Vec3
 
 class OpConfigureMageBlock(private val modifier: MageBlockModifierType<*>) : SpellAction {
 	override val argc = modifier.argc + 1
@@ -20,13 +20,13 @@ class OpConfigureMageBlock(private val modifier: MageBlockModifierType<*>) : Spe
 		if (env.world.getBlockState(position).block !is MageBlock)
 			throw MishapBadBlock.of(position, "mage_block")
 		val modifier = modifier.construct(args)
-		return SpellAction.Result(Spell(position, modifier), 0, listOf(ParticleSpray.cloud(Vec3d.ofCenter(position), 1.0)))
+		return SpellAction.Result(Spell(position, modifier), 0, listOf(ParticleSpray.cloud(Vec3.atCenterOf(position), 1.0)))
 	}
 
 	private data class Spell(val pos: BlockPos, val modifier: MageBlockModifier) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
-			if (env.castingEntity is ServerPlayerEntity)
-				HexicalAdvancements.DIY.trigger(env.castingEntity as ServerPlayerEntity)
+			if (env.castingEntity is ServerPlayer)
+				HexicalAdvancements.DIY.trigger(env.castingEntity as ServerPlayer)
 			(env.world.getBlockEntity(pos) as MageBlockEntity).addModifier(modifier)
 		}
 	}

@@ -3,28 +3,29 @@ package miyucomics.hexical.features.wristpocket
 import at.petrak.hexcasting.api.utils.serializeToNBT
 import miyucomics.hexical.features.player.getHexicalPlayerManager
 import miyucomics.hexical.features.player.types.PlayerField
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtCompound
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.core.HolderLookup
 
 class WristpocketField : PlayerField {
 	var wristpocket: ItemStack = ItemStack.EMPTY
 
-	override fun readNbt(compound: NbtCompound) {
+	override fun readNbt(compound: CompoundTag, provider: HolderLookup.Provider) {
 		if (!compound.contains("wristpocket"))
 			return
-		wristpocket = ItemStack.fromNbt(compound.getCompound("wristpocket"))
+		wristpocket = ItemStack.parseOptional(provider, compound.getCompound("wristpocket"))
 	}
 
-	override fun writeNbt(compound: NbtCompound) {
-		compound.put("wristpocket", wristpocket.serializeToNBT())
+	override fun writeNbt(compound: CompoundTag, provider: HolderLookup.Provider) {
+		compound.put("wristpocket", wristpocket.saveOptional(provider))
 	}
 
-	override fun handleRespawn(new: PlayerEntity, old: PlayerEntity) {
+	override fun handleRespawn(new: Player, old: Player) {
 		new.wristpocket = old.wristpocket
 	}
 }
 
-var PlayerEntity.wristpocket: ItemStack
+var Player.wristpocket: ItemStack
 	get() = this.getHexicalPlayerManager().get(WristpocketField::class).wristpocket
 	set(stack) { this.getHexicalPlayerManager().get(WristpocketField::class).wristpocket = stack }

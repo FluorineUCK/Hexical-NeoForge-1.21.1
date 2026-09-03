@@ -2,7 +2,7 @@ package miyucomics.hexical.features.telepathy
 
 import miyucomics.hexical.features.player.getHexicalPlayerManager
 import miyucomics.hexical.features.player.types.PlayerField
-import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.world.entity.player.Player
 
 class KeybindField : PlayerField {
 	var active: HashMap<String, Boolean> = HashMap()
@@ -10,8 +10,8 @@ class KeybindField : PlayerField {
 	var scroll: Int = 0
 }
 
-fun PlayerEntity.serverKeybindActive() = this.getHexicalPlayerManager().get(KeybindField::class).active
-fun PlayerEntity.serverKeybindDuration() = this.getHexicalPlayerManager().get(KeybindField::class).duration
-var PlayerEntity.serverScroll: Int
+fun Player.serverKeybindActive() = this.getHexicalPlayerManager().get(KeybindField::class).active
+fun Player.serverKeybindDuration() = this.getHexicalPlayerManager().get(KeybindField::class).duration
+var Player.serverScroll: Int
 	get() = this.getHexicalPlayerManager().get(KeybindField::class).scroll
 	set(scroll) { this.getHexicalPlayerManager().get(KeybindField::class).scroll = scroll }

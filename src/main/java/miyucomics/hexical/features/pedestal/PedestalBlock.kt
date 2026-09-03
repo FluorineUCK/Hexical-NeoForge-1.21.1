@@ -4,86 +4,92 @@ import at.petrak.hexcasting.api.block.circle.BlockCircleComponent
 import at.petrak.hexcasting.api.casting.circles.ICircleComponent.ControlFlow
 import at.petrak.hexcasting.api.casting.eval.env.CircleCastEnv
 import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
-import miyucomics.hexical.inits.HexicalBlocks
-import net.minecraft.block.*
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.block.entity.BlockEntityTicker
-import net.minecraft.block.entity.BlockEntityType
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.ai.pathing.NavigationType
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.fluid.FluidState
-import net.minecraft.fluid.Fluids
-import net.minecraft.inventory.Inventory
-import net.minecraft.item.ItemPlacementContext
-import net.minecraft.item.ItemStack
-import net.minecraft.screen.ScreenHandler
-import net.minecraft.server.world.ServerWorld
-import net.minecraft.state.StateManager
-import net.minecraft.state.property.DirectionProperty
-import net.minecraft.state.property.Properties
-import net.minecraft.state.property.Properties.WATERLOGGED
-import net.minecraft.util.ActionResult
-import net.minecraft.util.Hand
-import net.minecraft.util.ItemScatterer
-import net.minecraft.util.hit.BlockHitResult
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.shape.VoxelShape
-import net.minecraft.util.shape.VoxelShapes
-import net.minecraft.world.BlockView
-import net.minecraft.world.World
-import net.minecraft.world.WorldAccess
+import net.minecraft.world.level.block.*
+import net.minecraft.world.level.block.state.BlockBehaviour.Properties
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.BlockEntityTicker
+import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.level.pathfinder.PathComputationType
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.Container
+import net.minecraft.world.item.context.BlockPlaceContext
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.DirectionProperty
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.ItemInteractionResult
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.Containers
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.world.phys.shapes.VoxelShape
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.CollisionContext
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
 import java.util.*
 
-open class PedestalBlock : BlockCircleComponent(Settings.copy(Blocks.DEEPSLATE_TILES).strength(4f, 4f)), BlockEntityProvider, Waterloggable {
+class PedestalBlock : BlockCircleComponent(Properties.ofFullCopy(Blocks.DEEPSLATE_TILES).strength(4f, 4f)), EntityBlock {
 	init {
-		defaultState = stateManager.defaultState
-			.with(ENERGIZED, false)
-			.with(FACING, Direction.NORTH)
-			.with(WATERLOGGED, false)
+		registerDefaultState(stateDefinition.any()
+			.setValue(ENERGIZED, false)
+			.setValue(FACING, Direction.NORTH))
 	}
 
-	override fun onPlaced(world: World, pos: BlockPos, state: BlockState, placer: LivingEntity?, stack: ItemStack) {
+	override fun setPlacedBy(world: Level, pos: BlockPos, state: BlockState, placer: LivingEntity?, stack: ItemStack) {
 		(world.getBlockEntity(pos) as PedestalBlockEntity).onBlockPlace()
-		super.onPlaced(world, pos, state, placer, stack)
+		super.setPlacedBy(world, pos, state, placer, stack)
 	}
 
-	override fun onStateReplaced(state: BlockState, world: World, pos: BlockPos, newState: BlockState, moved: Boolean) {
-		if (state.isOf(newState.block))
+	override fun onRemove(state: BlockState, world: Level, pos: BlockPos, newState: BlockState, moved: Boolean) {
+		if (state.`is`(newState.block))
 			return
 		val pedestal = world.getBlockEntity(pos)
 		if (pedestal is PedestalBlockEntity) {
-			ItemScatterer.spawn(world, pos, pedestal)
-			world.updateComparators(pos, this)
+			Containers.dropContents(world, pos, pedestal)
+			world.updateNeighbourForOutputSignal(pos, this)
 			pedestal.onBlockBreak()
 		}
-		super.onStateReplaced(state, world, pos, newState, moved)
+		super.onRemove(state, world, pos, newState, moved)
 	}
 
-	override fun canPathfindThrough(state: BlockState, world: BlockView, pos: BlockPos, navigationType: NavigationType) = false
+	override fun isPathfindable(state: BlockState, navigationType: PathComputationType) = false
 
-	override fun onUse(state: BlockState, world: World, pos: BlockPos, player: PlayerEntity, hand: Hand, hit: BlockHitResult): ActionResult {
+	override fun useItemOn(stack: ItemStack, state: BlockState, world: Level, pos: BlockPos, player: Player, hand: InteractionHand, hit: BlockHitResult): ItemInteractionResult {
 		val pedestal = world.getBlockEntity(pos)
-		if (pedestal is PedestalBlockEntity)
-			return pedestal.onUse(player, hand)
-		return ActionResult.PASS
+		if (pedestal is PedestalBlockEntity) {
+			pedestal.onUse(player, hand)
+			return ItemInteractionResult.sidedSuccess(world.isClientSide)
+		}
+		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
 	}
 
-	override fun appendProperties(builder: StateManager.Builder<Block, BlockState>) {
-		super.appendProperties(builder)
-		builder.add(FACING, WATERLOGGED)
+	override fun useWithoutItem(state: BlockState, world: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
+		val pedestal = world.getBlockEntity(pos) as? PedestalBlockEntity ?: return InteractionResult.PASS
+		pedestal.onUse(player, InteractionHand.MAIN_HAND)
+		return InteractionResult.sidedSuccess(world.isClientSide)
 	}
 
-	override fun canEnterFromDirection(enterDir: Direction, pos: BlockPos, state: BlockState, world: ServerWorld) = enterDir != this.normalDir(pos, state, world).opposite
+	override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
+		super.createBlockStateDefinition(builder)
+		builder.add(FACING)
+	}
 
-	override fun acceptControlFlow(image: CastingImage, env: CircleCastEnv, enterDir: Direction, pos: BlockPos, state: BlockState, world: ServerWorld): ControlFlow {
+	override fun canEnterFromDirection(enterDir: Direction, pos: BlockPos, state: BlockState, world: ServerLevel) = enterDir != this.normalDir(pos, state, world).opposite
+
+	override fun acceptControlFlow(image: CastingImage, env: CircleCastEnv, enterDir: Direction, pos: BlockPos, state: BlockState, world: ServerLevel): ControlFlow {
 		val exits = this.possibleExitDirections(pos, state, world)
 		exits.remove(enterDir.opposite)
 		return ControlFlow.Continue((world.getBlockEntity(pos) as PedestalBlockEntity).modifyImage(image), exits.map { dir -> exitPositionFromDirection(pos, dir) })
 	}
 
-	override fun possibleExitDirections(pos: BlockPos, state: BlockState, world: World): EnumSet<Direction> {
+	override fun possibleExitDirections(pos: BlockPos, state: BlockState, world: Level): EnumSet<Direction> {
 		val exits = EnumSet.allOf(Direction::class.java)
 		val normal = this.normalDir(pos, state, world)
 		exits.remove(normal)
@@ -91,38 +97,31 @@ open class PedestalBlock : BlockCircleComponent(Settings.copy(Blocks.DEEPSLATE_T
 		return exits
 	}
 
-	override fun particleHeight(pos: BlockPos, state: BlockState, world: World) = PedestalBlockEntity.HEIGHT.toFloat()
-	override fun normalDir(pos: BlockPos, state: BlockState, world: World, recursionLeft: Int): Direction = state.get(FACING)
+	override fun particleHeight(pos: BlockPos, state: BlockState, world: Level) = PedestalBlockEntity.HEIGHT.toFloat()
+	override fun normalDir(pos: BlockPos, state: BlockState, world: Level, recursionLeft: Int): Direction = state.getValue(FACING)
 
-	override fun getPlacementState(ctx: ItemPlacementContext): BlockState = super.getPlacementState(ctx)!!.with(FACING, ctx.side).with(WATERLOGGED, ctx.world.getFluidState(ctx.blockPos).isOf(Fluids.WATER))
-	override fun getOutlineShape(state: BlockState, world: BlockView, pos: BlockPos, context: ShapeContext) = SHAPES[state.get(FACING)]
-	override fun getFluidState(state: BlockState): FluidState = if (state.get(WATERLOGGED)) Fluids.WATER.getStill(false) else super.getFluidState(state)
+	override fun getStateForPlacement(ctx: BlockPlaceContext): BlockState = super.getStateForPlacement(ctx)!!.setValue(FACING, ctx.clickedFace)
+	override fun getShape(state: BlockState, world: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape = SHAPES.getValue(state.getValue(FACING))
 
-	override fun getStateForNeighborUpdate(blockState: BlockState, direction: Direction, blockState2: BlockState, worldAccess: WorldAccess, blockPos: BlockPos, blockPos2: BlockPos): BlockState {
-		if (blockState.get(WATERLOGGED))
-			worldAccess.scheduleFluidTick(blockPos, Fluids.WATER, Fluids.WATER.getTickRate(worldAccess))
-		return super.getStateForNeighborUpdate(blockState, direction, blockState2, worldAccess, blockPos, blockPos2)
-	}
-
-	override fun getComparatorOutput(state: BlockState, world: World, pos: BlockPos): Int {
+	override fun getAnalogOutputSignal(state: BlockState, world: Level, pos: BlockPos): Int {
 		val blockEntity = world.getBlockEntity(pos)
 		if (blockEntity !is PedestalBlockEntity)
 			return 0
-		return ScreenHandler.calculateComparatorOutput(blockEntity as Inventory)
+		return AbstractContainerMenu.getRedstoneSignalFromContainer(blockEntity as Container)
 	}
 
-	override fun createBlockEntity(pos: BlockPos, state: BlockState) = PedestalBlockEntity(HexicalBlocks.PEDESTAL_BLOCK_ENTITY, pos, state)
-	override fun <T : BlockEntity> getTicker(world: World, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T> = BlockEntityTicker { world1, _, _, blockEntity -> (blockEntity as PedestalBlockEntity).tick(world1) }
+	override fun newBlockEntity(pos: BlockPos, state: BlockState) = PedestalBlockEntity(pos, state)
+	override fun <T : BlockEntity> getTicker(world: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T> = BlockEntityTicker { world1, _, _, blockEntity -> (blockEntity as PedestalBlockEntity).tick(world1) }
 
 	companion object {
-		val FACING: DirectionProperty = Properties.FACING
+		val FACING: DirectionProperty = BlockStateProperties.FACING
 		val SHAPES = EnumMap<Direction, VoxelShape>(Direction::class.java).apply {
-			put(Direction.NORTH, VoxelShapes.cuboid(0.0, 0.0, 0.25, 1.0, 1.0, 1.0))
-			put(Direction.SOUTH, VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 1.0, 0.75))
-			put(Direction.EAST, VoxelShapes.cuboid(0.0, 0.0, 0.0, 0.75, 1.0, 1.0))
-			put(Direction.WEST, VoxelShapes.cuboid(0.25, 0.0, 0.0, 1.0, 1.0, 1.0))
-			put(Direction.UP, VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.75, 1.0))
-			put(Direction.DOWN, VoxelShapes.cuboid(0.0, 0.25, 0.0, 1.0, 1.0, 1.0))
+			put(Direction.NORTH, Shapes.box(0.0, 0.0, 0.25, 1.0, 1.0, 1.0))
+			put(Direction.SOUTH, Shapes.box(0.0, 0.0, 0.0, 1.0, 1.0, 0.75))
+			put(Direction.EAST, Shapes.box(0.0, 0.0, 0.0, 0.75, 1.0, 1.0))
+			put(Direction.WEST, Shapes.box(0.25, 0.0, 0.0, 1.0, 1.0, 1.0))
+			put(Direction.UP, Shapes.box(0.0, 0.0, 0.0, 1.0, 0.75, 1.0))
+			put(Direction.DOWN, Shapes.box(0.0, 0.25, 0.0, 1.0, 1.0, 1.0))
 		}
 	}
 }

@@ -7,8 +7,8 @@ import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.getBlockPos
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapBadBlock
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
+import net.minecraft.core.BlockPos
+import net.minecraft.world.phys.Vec3
 
 object OpResetMageBlock : SpellAction {
 	override val argc = 1
@@ -17,7 +17,7 @@ object OpResetMageBlock : SpellAction {
 		env.assertPosInRange(position)
 		if (env.world.getBlockState(position).block !is MageBlock)
 			throw MishapBadBlock.of(position, "mage_block")
-		return SpellAction.Result(Spell(position), 0, listOf(ParticleSpray.cloud(Vec3d.ofCenter(position), 1.0)))
+		return SpellAction.Result(Spell(position), 0, listOf(ParticleSpray.cloud(Vec3.atCenterOf(position), 1.0)))
 	}
 
 	private data class Spell(val pos: BlockPos) : RenderedSpell {

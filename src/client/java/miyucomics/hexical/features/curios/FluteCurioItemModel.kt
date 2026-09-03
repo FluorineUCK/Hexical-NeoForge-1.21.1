@@ -1,16 +1,15 @@
 package miyucomics.hexical.features.curios
 
+import miyucomics.hexical.HexicalMain
 import miyucomics.hexical.misc.InitHook
-import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin
-import net.minecraft.client.util.ModelIdentifier
+import net.minecraft.client.resources.model.ModelResourceLocation
+import net.neoforged.neoforge.client.event.ModelEvent
 
 object FluteCurioItemModel : InitHook() {
-	@JvmField val heldFluteModel: ModelIdentifier = ModelIdentifier("hexical", "held_curio_flute", "inventory")
-	@JvmField val fluteModel: ModelIdentifier = ModelIdentifier("hexical", "curio_flute", "inventory")
+	@JvmField val heldFluteModel: ModelResourceLocation = ModelResourceLocation.standalone(HexicalMain.id("item/held_curio_flute"))
+	@JvmField val fluteModel: ModelResourceLocation = ModelResourceLocation.inventory(HexicalMain.id("curio_flute"))
 
-	override fun init() {
-		ModelLoadingPlugin.register { context ->
-			context.addModels(heldFluteModel)
-		}
-	}
+	override fun init() = Unit
+
+	fun registerModels(event: ModelEvent.RegisterAdditional) = event.register(heldFluteModel)
 }

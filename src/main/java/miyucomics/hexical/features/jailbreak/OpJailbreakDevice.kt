@@ -9,7 +9,8 @@ import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.common.items.magic.ItemPackagedHex
 import miyucomics.hexical.features.charms.CharmUtilities
 import miyucomics.hexical.features.curios.CurioItem
-import net.minecraft.item.ItemStack
+import net.minecraft.world.item.ItemStack
+import miyucomics.hexical.hexcompat.ItemStackDataCompat
 
 object OpJailbreakDevice : SpellAction {
 	override val argc = 0
@@ -27,7 +28,7 @@ object OpJailbreakDevice : SpellAction {
 
 	private data class Spell(val stack: ItemStack) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
-			stack.orCreateNbt.putBoolean("cracked", true)
+			ItemStackDataCompat.update(stack) { it.putBoolean("cracked", true) }
 		}
 	}
 }

@@ -1,26 +1,28 @@
 package miyucomics.hexical.misc
 
 import at.petrak.hexcasting.api.casting.iota.Iota
-import at.petrak.hexcasting.api.casting.iota.IotaType
+import at.petrak.hexcasting.api.casting.iota.GarbageIota
 import at.petrak.hexcasting.api.casting.iota.ListIota
-import at.petrak.hexcasting.api.utils.asCompound
 import at.petrak.hexcasting.api.utils.putList
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtList
-import net.minecraft.server.world.ServerWorld
+import miyucomics.hexical.hexcompat.deserializeIota
+import miyucomics.hexical.hexcompat.serializeIota
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.ListTag
+import net.minecraft.server.level.ServerLevel
 
 object HexSerialization {
-	fun serializeHex(hex: List<Iota>) = NbtList().also { hex.forEach { iota -> it.add(IotaType.serialize(iota)) } }
-	fun deserializeHex(list: NbtList, world: ServerWorld) = list.map { IotaType.deserialize(it.asCompound, world) }
+	fun serializeHex(hex: List<Iota>) = ListTag().also { out -> hex.forEach { out.add(serializeIota(it)) } }
+	fun deserializeHex(list: ListTag, world: ServerLevel) = list.map { deserializeIota(it, world) ?: GarbageIota() }
 
-	fun backwardsCompatibleReadHex(holder: NbtCompound, key: String, world: ServerWorld): List<Iota> {
-		val element = holder.get(key)
-		if (element is NbtCompound) {
-			val elementData = (IotaType.deserialize(element, world) as ListIota).list.toList()
+	fun backwardsCompatibleReadHex(holder: CompoundTag, key: String, world: ServerLevel): List<Iota> {
+		val element = holder.get(key) ?: return emptyList()
+		if (element is CompoundTag) {
+			val elementData = (deserializeIota(element, world) as? ListIota)?.list?.toList()
+				?: return emptyList()
 			holder.remove(key)
 			holder.putList(key, serializeHex(elementData))
 			return elementData
 		}
-		return deserializeHex(element as NbtList, world)
+		return if (element is ListTag) deserializeHex(element, world) else emptyList()
 	}
 }

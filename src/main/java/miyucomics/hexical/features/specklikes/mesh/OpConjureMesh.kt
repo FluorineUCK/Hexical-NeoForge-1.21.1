@@ -9,8 +9,8 @@ import at.petrak.hexcasting.api.casting.iota.EntityIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.misc.MediaConstants
 import miyucomics.hexical.inits.HexicalAdvancements
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.util.math.Vec3d
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.phys.Vec3
 
 object OpConjureMesh : SpellAction {
 	override val argc = 1
@@ -20,18 +20,20 @@ object OpConjureMesh : SpellAction {
 		return SpellAction.Result(Spell(position), MediaConstants.DUST_UNIT, listOf())
 	}
 
-	private data class Spell(val position: Vec3d) : RenderedSpell {
+	private data class Spell(val position: Vec3) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {}
 		override fun cast(env: CastingEnvironment, image: CastingImage): CastingImage {
-			if (env.castingEntity is ServerPlayerEntity)
-				HexicalAdvancements.AR.trigger(env.castingEntity as ServerPlayerEntity)
+			if (env.castingEntity is ServerPlayer)
+				HexicalAdvancements.AR.trigger(env.castingEntity as ServerPlayer)
 
 			val mesh = MeshEntity(env.world)
-			mesh.setPosition(position)
+			mesh.setPos(position)
 			mesh.setPigment(env.pigment)
-			env.world.spawnEntity(mesh)
+			mesh.setSize(1f)
+			mesh.setThickness(1f)
+			env.world.addFreshEntity(mesh)
 
-			return image.copy(stack = image.stack.toList().plus(EntityIota(mesh)))
+			return image.copy(stack = image.stack.appended(EntityIota(mesh)))
 		}
 	}
 }

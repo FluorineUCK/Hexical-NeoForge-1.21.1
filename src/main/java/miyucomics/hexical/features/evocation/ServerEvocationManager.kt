@@ -1,35 +1,33 @@
 package miyucomics.hexical.features.evocation
 
-import miyucomics.hexical.HexicalMain
 import miyucomics.hexical.inits.HexicalSounds
 import miyucomics.hexical.misc.CastingUtils
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+import miyucomics.hexical.network.PlayerUuidPayload
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.sound.SoundCategory
-import net.minecraft.util.Identifier
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.sounds.SoundSource
+import net.neoforged.neoforge.network.PacketDistributor
 
 object ServerEvocationManager {
-	val START_EVOKE_CHANNEL: Identifier = HexicalMain.id("start_evoking")
-	val END_EVOKING_CHANNEL: Identifier = HexicalMain.id("end_evoking")
 	const val EVOKE_DURATION: Int = 20
 
-	fun startEvocation(player: ServerPlayerEntity, server: MinecraftServer) {
+	fun startEvocation(player: ServerPlayer, server: MinecraftServer) {
 		if (!CastingUtils.isEnlightened(player))
 			return
 		player.evocationActive = true
 		player.evocationDuration = EVOKE_DURATION
-		player.world.playSound(null, player.x, player.y, player.z, HexicalSounds.EVOKING_MURMUR, SoundCategory.PLAYERS, 1f, 1f)
-		for (receiver in server.playerManager.playerList)
-			ServerPlayNetworking.send(receiver, START_EVOKE_CHANNEL, PacketByteBufs.create().also { it.writeUuid(player.uuid) })
+		player.level().playSound(null, player.x, player.y, player.z, HexicalSounds.EVOKING_MURMUR, SoundSource.PLAYERS, 1f, 1f)
+		val payload = PlayerUuidPayload(player.uuid, PlayerUuidPayload.EVOCATION_START_TYPE)
+		for (receiver in server.playerList.players)
+			PacketDistributor.sendToPlayer(receiver, payload)
 	}
 
-	fun endEvocation(player: ServerPlayerEntity, server: MinecraftServer) {
+	fun endEvocation(player: ServerPlayer, server: MinecraftServer) {
 		if (!CastingUtils.isEnlightened(player))
 			return
 		player.evocationActive = false
-		for (receiver in server.playerManager.playerList)
-			ServerPlayNetworking.send(receiver, END_EVOKING_CHANNEL, PacketByteBufs.create().also { it.writeUuid(player.uuid) })
+		val payload = PlayerUuidPayload(player.uuid, PlayerUuidPayload.EVOCATION_END_TYPE)
+		for (receiver in server.playerList.players)
+			PacketDistributor.sendToPlayer(receiver, payload)
 	}
 }

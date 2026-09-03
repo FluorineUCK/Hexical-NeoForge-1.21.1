@@ -1,0 +1,63 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "hexical"
+version = "${version}"
+displayName = "Hexical"
+logoFile = "assets/hexical/icon.png"
+authors = "miyucomics"
+description = '''
+A Hex Casting addon containing genie lamps, mage blocks, animated scrolls,
+specks, world scrying, and more.
+'''
+displayURL = "https://miyucomics.github.io/hexical"
+
+[[mixins]]
+config = "hexical.mixins.json"
+
+[[mixins]]
+config = "hexical.client.mixins.json"
+
+[[dependencies.hexical]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.111,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.hexical]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.21.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.hexical]]
+modId = "kotlinforforge"
+type = "required"
+versionRange = "[5.12.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.hexical]]
+modId = "hexcasting"
+type = "required"
+versionRange = "[0.12.0-devel-pre-35,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.hexical]]
+modId = "hexpose"
+type = "required"
+versionRange = "[1.0.0,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.hexical]]
+modId = "playeranimator"
+type = "required"
+versionRange = "[2.0.4,)"
+ordering = "AFTER"
+side = "CLIENT"

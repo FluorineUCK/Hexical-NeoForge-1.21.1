@@ -8,12 +8,10 @@ import at.petrak.hexcasting.api.casting.eval.env.CircleCastEnv
 import at.petrak.hexcasting.api.casting.getEntity
 import at.petrak.hexcasting.api.casting.getVec3
 import at.petrak.hexcasting.api.casting.iota.Iota
-import at.petrak.hexcasting.api.casting.mishaps.MishapBadLocation
 import at.petrak.hexcasting.api.casting.mishaps.circle.MishapNoSpellCircle
 import at.petrak.hexcasting.api.misc.MediaConstants
-import at.petrak.hexcasting.api.mod.HexConfig
-import net.minecraft.entity.Entity
-import net.minecraft.util.math.Vec3d
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.phys.Vec3
 
 object OpDisplace : SpellAction {
 	override val argc = 2
@@ -24,22 +22,20 @@ object OpDisplace : SpellAction {
 		val circle = env.impetus ?: throw MishapNoSpellCircle()
 		val bounds = circle.executionState!!.bounds
 
-		val entity = args.getEntity(0, argc)
-		if (!bounds.contains(entity.pos))
+		val entity = args.getEntity(env.world, 0, argc)
+		if (!bounds.aabb().contains(entity.position()))
 			throw OutsideCircleMishap()
 
 		val destination = args.getVec3(1, argc)
-		if (!HexConfig.server().canTeleportInThisDimension(env.world.registryKey))
-			throw MishapBadLocation(destination, "bad_dimension")
-		if (!bounds.contains(destination))
+		if (!bounds.aabb().contains(destination))
 			throw OutsideCircleMishap()
 
 		return SpellAction.Result(Spell(entity, destination), MediaConstants.DUST_UNIT / 2, listOf(ParticleSpray.burst(destination, 1.0)))
 	}
 
-	private data class Spell(val entity: Entity, val destination: Vec3d) : RenderedSpell {
+	private data class Spell(val entity: Entity, val destination: Vec3) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
-			entity.teleport(destination.x, destination.y, destination.z)
+			entity.teleportTo(destination.x, destination.y, destination.z)
 		}
 	}
 }

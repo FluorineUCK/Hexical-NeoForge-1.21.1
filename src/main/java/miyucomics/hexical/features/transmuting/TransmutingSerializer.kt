@@ -1,91 +1,53 @@
 package miyucomics.hexical.features.transmuting
 
-import com.google.gson.*
-import com.mojang.serialization.JsonOps
-import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtElement
-import net.minecraft.nbt.NbtOps
-import net.minecraft.network.PacketByteBuf
-import net.minecraft.recipe.Ingredient
-import net.minecraft.recipe.RecipeSerializer
-import net.minecraft.registry.Registries
-import net.minecraft.util.Identifier
+import com.mojang.datafixers.util.Either
+import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
+import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.network.RegistryFriendlyByteBuf
+import net.minecraft.network.codec.StreamCodec
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.crafting.Ingredient
+import net.minecraft.world.item.crafting.RecipeSerializer
 
 class TransmutingSerializer : RecipeSerializer<TransmutingRecipe> {
-	override fun read(recipeId: Identifier, json: JsonObject): TransmutingRecipe {
-		val recipeJson: DataFormat = Gson().fromJson(json, DataFormat::class.java)
-		if (recipeJson.input == null)
-			throw JsonSyntaxException("Input is missing in recipe $recipeId")
-		if (recipeJson.output == null)
-			throw JsonSyntaxException("Output is missing in recipe $recipeId")
-
-		val outputs = when (val output = recipeJson.output) {
-			is JsonArray -> output.map { deriveSingleItem(it, recipeId) }
-			else -> listOf(deriveSingleItem(output, recipeId))
-		}
-
-		return TransmutingRecipe(recipeId, Ingredient.fromJson(recipeJson.input), recipeJson.cost, outputs)
-	}
-
-	override fun write(buf: PacketByteBuf, recipe: TransmutingRecipe) {
-		recipe.input.write(buf)
-		buf.writeLong(recipe.cost)
-		buf.writeInt(recipe.output.size)
-		for (item in recipe.output)
-			buf.writeItemStack(item)
-	}
-
-	override fun read(id: Identifier, buf: PacketByteBuf): TransmutingRecipe {
-		val input = Ingredient.fromPacket(buf)
-		val mediaCost = buf.readLong()
-
-		val outputs = mutableListOf<ItemStack>()
-		val length = buf.readInt()
-		for (i in 0 until length)
-			outputs.add(buf.readItemStack())
-
-		return TransmutingRecipe(id, input, mediaCost, outputs)
-	}
+	override fun codec(): MapCodec<TransmutingRecipe> = CODEC
+	override fun streamCodec(): StreamCodec<RegistryFriendlyByteBuf, TransmutingRecipe> = STREAM_CODEC
 
 	companion object {
-		val INSTANCE: TransmutingSerializer = TransmutingSerializer()
+		private const val MAX_OUTPUTS = 64
+		@JvmField val INSTANCE: TransmutingSerializer = TransmutingSerializer()
 
-		fun deriveSingleItem(thing: JsonElement, recipeId: Identifier): ItemStack {
-			return when (thing) {
-				is JsonObject -> deriveComplexItem(thing, recipeId)
-				is JsonPrimitive -> ItemStack(Registries.ITEM.getOrEmpty(Identifier(thing.asString)).orElseThrow { JsonSyntaxException("No such item $thing") })
-				else -> throw IllegalStateException("$thing is not a valid single item stack format.")
-			}
+		private val OUTPUT_CODEC: Codec<List<ItemStack>> = Codec.either(ItemStack.CODEC, ItemStack.CODEC.listOf()).xmap(
+			{ either -> either.map({ listOf(it) }, { it }) },
+			{ outputs -> if (outputs.size == 1) Either.left(outputs[0]) else Either.right(outputs) }
+		)
+
+		@JvmField
+		val CODEC: MapCodec<TransmutingRecipe> = RecordCodecBuilder.mapCodec { instance ->
+			instance.group(
+				Ingredient.CODEC_NONEMPTY.fieldOf("input").forGetter(TransmutingRecipe::input),
+				Codec.LONG.fieldOf("cost").forGetter(TransmutingRecipe::cost),
+				OUTPUT_CODEC.fieldOf("output").forGetter(TransmutingRecipe::output)
+			).apply(instance, ::TransmutingRecipe)
 		}
 
-		private fun deriveComplexItem(output: JsonObject, recipeId: Identifier): ItemStack {
-			var outputCount = 1
-			var outputNBT: NbtElement? = null
-
-			val outputItemID: String = output.get("item").asString
-			val outputItem = Registries.ITEM.getOrEmpty(Identifier(outputItemID)).orElseThrow { JsonSyntaxException("No such item $outputItemID") }
-
-			if (output.has("count"))
-				outputCount = output.get("count").asInt
-			if (output.has("nbt"))
-				outputNBT = JsonOps.INSTANCE.convertTo(NbtOps.INSTANCE, output.get("nbt"))
-
-			val outputStack = ItemStack(outputItem, outputCount)
-			if (outputNBT != null) {
-				if (outputNBT is NbtCompound)
-					outputStack.nbt = outputNBT
-				else
-					throw IllegalStateException("Weird NBT: $outputItemID in recipe $recipeId")
+		@JvmField
+		val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, TransmutingRecipe> = StreamCodec.of(
+			{ buf, recipe ->
+				require(recipe.output.size in 1..MAX_OUTPUTS) { "A transmuting recipe must contain 1..$MAX_OUTPUTS outputs" }
+				Ingredient.CONTENTS_STREAM_CODEC.encode(buf, recipe.input)
+				buf.writeLong(recipe.cost)
+				buf.writeVarInt(recipe.output.size)
+				recipe.output.forEach { ItemStack.STREAM_CODEC.encode(buf, it) }
+			},
+			{ buf ->
+				val input = Ingredient.CONTENTS_STREAM_CODEC.decode(buf)
+				val cost = buf.readLong()
+				val size = buf.readVarInt()
+				require(size in 1..MAX_OUTPUTS) { "Invalid transmuting output count: $size" }
+				TransmutingRecipe(input, cost, List(size) { ItemStack.STREAM_CODEC.decode(buf) })
 			}
-
-			return outputStack
-		}
+		)
 	}
-}
-
-private class DataFormat {
-	val input: JsonObject? = null
-	val output: JsonElement? = null
-	val cost: Long = 0
 }

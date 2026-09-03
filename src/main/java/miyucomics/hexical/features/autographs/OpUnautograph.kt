@@ -7,12 +7,13 @@ import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapBadOffhandItem
 import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.xplat.IXplatAbstractions
-import net.minecraft.item.ItemStack
+import miyucomics.hexical.hexcompat.ItemStackDataCompat
+import net.minecraft.world.item.ItemStack
 
 object OpUnautograph : SpellAction {
 	override val argc = 0
 	override fun execute(args: List<Iota>, env: CastingEnvironment): SpellAction.Result {
-		val stack = env.getHeldItemToOperateOn { it.hasNbt() && it.orCreateNbt.contains("autographs") }
+		val stack = env.getHeldItemToOperateOn { ItemStackDataCompat.contains(it, "autographs") }
 		if (stack == null)
 			throw MishapBadOffhandItem.of(null, "autographed")
 		return SpellAction.Result(Spell(stack.stack), MediaConstants.DUST_UNIT, listOf())
@@ -20,7 +21,7 @@ object OpUnautograph : SpellAction {
 
 	private data class Spell(val stack: ItemStack) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
-			stack.orCreateNbt.remove("autographs")
+			ItemStackDataCompat.update(stack) { it.remove("autographs") }
 
 			val hexHolder = IXplatAbstractions.INSTANCE.findHexHolder(stack)
 			if (hexHolder?.hasHex() == true)

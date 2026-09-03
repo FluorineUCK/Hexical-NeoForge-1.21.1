@@ -10,7 +10,7 @@ import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.iota.Vec3Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
 import at.petrak.hexcasting.api.misc.MediaConstants
-import net.minecraft.util.math.Vec3d
+import net.minecraft.world.phys.Vec3
 
 object OpConfetti : SpellAction {
 	override val argc = 2
@@ -21,20 +21,20 @@ object OpConfetti : SpellAction {
 		when (args[1]) {
 			is DoubleIota -> {
 				val speed = args.getPositiveDoubleUnderInclusive(1, 2.0, argc) / 2
-				return SpellAction.Result(Spell(position, Vec3d.ZERO, speed), MediaConstants.DUST_UNIT / 100, listOf())
+				return SpellAction.Result(Spell(position, Vec3.ZERO, speed), MediaConstants.DUST_UNIT / 2, listOf())
 			}
 			is Vec3Iota -> {
 				val velocity = args.getVec3(1, argc)
 				val speed = velocity.length()
 				if (speed > 2)
 					throw MishapInvalidIota.of(args[1], 0, "small_vector")
-				return SpellAction.Result(Spell(position, velocity.normalize(), speed), MediaConstants.DUST_UNIT / 100, listOf())
+				return SpellAction.Result(Spell(position, velocity.normalize(), speed), MediaConstants.DUST_UNIT / 2, listOf())
 			}
 			else -> throw MishapInvalidIota.of(args[1], 0, "number_or_vector")
 		}
 	}
 
-	private data class Spell(val pos: Vec3d, val dir: Vec3d, val speed: Double) : RenderedSpell {
+	private data class Spell(val pos: Vec3, val dir: Vec3, val speed: Double) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
 			ConfettiHelper.spawn(env.world, pos, dir, speed)
 		}

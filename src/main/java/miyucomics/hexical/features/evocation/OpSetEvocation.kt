@@ -9,13 +9,13 @@ import at.petrak.hexcasting.api.casting.mishaps.MishapBadCaster
 import at.petrak.hexcasting.api.misc.MediaConstants
 import miyucomics.hexical.misc.CastingUtils
 import miyucomics.hexical.misc.HexSerialization
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.server.level.ServerPlayer
 
 object OpSetEvocation : SpellAction {
 	override val argc = 1
 	override fun execute(args: List<Iota>, env: CastingEnvironment): SpellAction.Result {
-		if (env.castingEntity !is ServerPlayerEntity)
+		if (env.castingEntity !is ServerPlayer)
 			throw MishapBadCaster()
 		CastingUtils.assertNoTruename(args[0], env)
 		return SpellAction.Result(Spell(args.getList(0, argc).toList()), MediaConstants.CRYSTAL_UNIT, listOf())
@@ -23,7 +23,7 @@ object OpSetEvocation : SpellAction {
 
 	private data class Spell(val hex: List<Iota>) : RenderedSpell {
 		override fun cast(env: CastingEnvironment) {
-			(env.castingEntity as PlayerEntity).evocation = HexSerialization.serializeHex(hex)
+			(env.castingEntity as Player).evocation = HexSerialization.serializeHex(hex)
 		}
 	}
 }

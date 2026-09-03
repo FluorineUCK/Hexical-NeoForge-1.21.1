@@ -1,40 +1,40 @@
 package miyucomics.hexical.features.periwinkle
 
 import at.petrak.hexcasting.common.lib.HexAttributes
-import com.google.common.collect.ImmutableMultimap
-import com.google.common.collect.Multimap
-import net.minecraft.entity.EquipmentSlot
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.attribute.EntityAttribute
-import net.minecraft.entity.attribute.EntityAttributeModifier
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.ArmorItem
-import net.minecraft.item.ItemStack
-import net.minecraft.util.ActionResult
-import net.minecraft.util.Hand
-import java.util.*
+import miyucomics.hexical.HexicalMain
+import net.minecraft.world.entity.EquipmentSlot
+import net.minecraft.world.entity.EquipmentSlotGroup
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.ai.attributes.AttributeModifier
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ArmorItem
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.component.ItemAttributeModifiers
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.InteractionHand
 
-object LeiItem : ArmorItem(LeiArmorMaterial.INSTANCE, Type.HELMET, Settings()) {
-	private var bakedAttributes: Multimap<EntityAttribute, EntityAttributeModifier>
+object LeiItem : ArmorItem(LeiArmorMaterial.INSTANCE, Type.HELMET, Properties()) {
+	private val bakedAttributes: ItemAttributeModifiers = ItemAttributeModifiers.builder()
+		.add(
+			HexAttributes.GRID_ZOOM,
+			AttributeModifier(HexicalMain.id("lei_grid_zoom"), 0.25, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL),
+			EquipmentSlotGroup.HEAD
+		)
+		.add(
+			HexAttributes.SCRY_SIGHT,
+			AttributeModifier(HexicalMain.id("lei_scry_sight"), 1.0, AttributeModifier.Operation.ADD_VALUE),
+			EquipmentSlotGroup.HEAD
+		)
+		.build()
 
-	init {
-		val attributes = ImmutableMultimap.builder<EntityAttribute, EntityAttributeModifier>()
-		attributes.put(HexAttributes.GRID_ZOOM, EntityAttributeModifier(UUID.fromString("9794eabc-2eec-42ee-b10a-c7d1fcd3de74"), "Scrying Lens Zoom", 0.25, EntityAttributeModifier.Operation.MULTIPLY_TOTAL))
-		bakedAttributes = attributes.build()
-	}
-
-	override fun useOnEntity(stack: ItemStack, player: PlayerEntity, friend: LivingEntity, hand: Hand): ActionResult {
-		if (friend is PlayerEntity && friend.getEquippedStack(EquipmentSlot.HEAD).isEmpty) {
-			friend.equipStack(EquipmentSlot.HEAD, stack.copy())
-			stack.decrement(1)
-			return ActionResult.SUCCESS
+	override fun interactLivingEntity(stack: ItemStack, player: Player, friend: LivingEntity, hand: InteractionHand): InteractionResult {
+		if (friend is Player && friend.getItemBySlot(EquipmentSlot.HEAD).isEmpty) {
+			friend.setItemSlot(EquipmentSlot.HEAD, stack.copy())
+			stack.shrink(1)
+			return InteractionResult.SUCCESS
 		}
-		return ActionResult.PASS
+		return InteractionResult.PASS
 	}
 
-	override fun getAttributeModifiers(equipmentSlot: EquipmentSlot): Multimap<EntityAttribute, EntityAttributeModifier> {
-		if (equipmentSlot == EquipmentSlot.HEAD)
-			return bakedAttributes
-		return super.getAttributeModifiers(equipmentSlot)
-	}
+	override fun getDefaultAttributeModifiers(): ItemAttributeModifiers = bakedAttributes
 }

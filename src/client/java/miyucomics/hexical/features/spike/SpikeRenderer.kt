@@ -1,39 +1,41 @@
 package miyucomics.hexical.features.spike
 
-import net.minecraft.client.render.*
-import net.minecraft.client.render.entity.EntityRenderer
-import net.minecraft.client.render.entity.EntityRendererFactory
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.util.Identifier
+import net.minecraft.client.renderer.*
+import net.minecraft.client.renderer.entity.EntityRenderer
+import net.minecraft.client.renderer.entity.EntityRendererProvider
+import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.blaze3d.vertex.VertexConsumer
+import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.resources.ResourceLocation
 import org.joml.Matrix3f
 import org.joml.Matrix4f
 import kotlin.math.floor
 import kotlin.math.max
 
-class SpikeRenderer(ctx: EntityRendererFactory.Context) : EntityRenderer<SpikeEntity>(ctx) {
+class SpikeRenderer(ctx: EntityRendererProvider.Context) : EntityRenderer<SpikeEntity>(ctx) {
 	private val textures = listOf(
-		Identifier("textures/block/small_amethyst_bud.png"),
-		Identifier("textures/block/medium_amethyst_bud.png"),
-		Identifier("textures/block/large_amethyst_bud.png"),
-		Identifier("textures/block/amethyst_cluster.png")
+		ResourceLocation.withDefaultNamespace("textures/block/small_amethyst_bud.png"),
+		ResourceLocation.withDefaultNamespace("textures/block/medium_amethyst_bud.png"),
+		ResourceLocation.withDefaultNamespace("textures/block/large_amethyst_bud.png"),
+		ResourceLocation.withDefaultNamespace("textures/block/amethyst_cluster.png")
 	)
 
-	override fun getTexture(spike: SpikeEntity?): Identifier {
-		return textures[max(floor(spike!!.getAnimationProgress() * (textures.size - 1)).toInt(), 0)]
+	override fun getTextureLocation(spike: SpikeEntity): ResourceLocation {
+		return textures[max(floor(spike.getAnimationProgress() * (textures.size - 1)).toInt(), 0)]
 	}
 
-	override fun render(spike: SpikeEntity?, yaw: Float, deltaTick: Float, matrices: MatrixStack, vertexConsumers: VertexConsumerProvider, light: Int) {
-		matrices.push()
-		val buffer = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(getTexture(spike)))
+	override fun render(spike: SpikeEntity, yaw: Float, deltaTick: Float, matrices: PoseStack, vertexConsumers: MultiBufferSource, light: Int) {
+		matrices.pushPose()
+		val buffer = vertexConsumers.getBuffer(RenderType.entityCutoutNoCull(getTextureLocation(spike)))
 
-		val direction = spike!!.getDirection()
-		matrices.multiply(direction.rotationQuaternion)
+		val direction = spike.getDirection()
+		matrices.mulPose(direction.rotation)
 		// I don't know why this works, but it works and I am never touching it again.
-		val y = direction.offsetY.toDouble()
+		val y = direction.stepY.toDouble()
 		matrices.translate(-0.5, -0.5 + y / 2, -1.0 + y * y / 2)
 
-		val mat = matrices.peek().positionMatrix
-		val norm = matrices.peek().normalMatrix
+		val mat = matrices.last().pose()
+		val norm = matrices.last().normal()
 
 		vertex(mat, buffer, norm, 1f, 1f, 0f, 0f, 0f)
 		vertex(mat, buffer, norm, 1f, 0f, 0f, 0f, 1f)
@@ -44,14 +46,13 @@ class SpikeRenderer(ctx: EntityRendererFactory.Context) : EntityRenderer<SpikeEn
 		vertex(mat, buffer, norm, 1f, 0f, 1f, 1f, 1f)
 		vertex(mat, buffer, norm, 1f, 1f, 1f, 1f, 0f)
 
-		matrices.pop()
+		matrices.popPose()
 	}
 
-	private fun vertex(mat: Matrix4f, verts: VertexConsumer, normal: Matrix3f, x: Float, y: Float, z: Float, u: Float, v: Float) = verts.vertex(mat, x, y, z)
-		.color(255, 255, 255, 255)
-		.texture(u, v)
-		.overlay(OverlayTexture.DEFAULT_UV)
-		.light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
-		.normal(normal, 0f, 1f, 0f)
-		.next()
+	private fun vertex(mat: Matrix4f, verts: VertexConsumer, normal: Matrix3f, x: Float, y: Float, z: Float, u: Float, v: Float) = verts.addVertex(mat, x, y, z)
+		.setColor(255, 255, 255, 255)
+		.setUv(u, v)
+		.setOverlay(OverlayTexture.NO_OVERLAY)
+		.setLight(LightTexture.FULL_BRIGHT)
+		.setNormal(0f, 1f, 0f)
 }

@@ -7,13 +7,15 @@ import at.petrak.hexcasting.api.casting.getBlockPos
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.misc.MediaConstants
 import at.petrak.hexcasting.api.mod.HexConfig
+import at.petrak.hexcasting.api.utils.isCorrectTierForDrops
 import at.petrak.hexcasting.xplat.IXplatAbstractions
-import net.minecraft.block.Block
-import net.minecraft.enchantment.Enchantments
-import net.minecraft.item.ItemStack
-import net.minecraft.item.Items
-import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.util.math.BlockPos
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.item.enchantment.Enchantments
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.Registries
 
 object OpBreakSilk : SpellAction {
 	override val argc = 1
@@ -29,13 +31,14 @@ object OpBreakSilk : SpellAction {
 			val tier = HexConfig.server().opBreakHarvestLevel()
 			if (
 				!state.isAir
-                && state.getHardness(env.world, pos) >= 0f
-                && IXplatAbstractions.INSTANCE.isCorrectTierForDrops(tier, state)
-                && IXplatAbstractions.INSTANCE.isBreakingAllowed(env.world, pos, state, env.castingEntity as? ServerPlayerEntity)
+                && state.getDestroySpeed(env.world, pos) >= 0f
+                && isCorrectTierForDrops(tier, state)
+                && IXplatAbstractions.INSTANCE.isBreakingAllowed(env.world, pos, state, env.castingEntity as? ServerPlayer)
 			) {
-				val blockEntity = env.world.getBlockEntity(pos)
-				Block.dropStacks(state, env.world, pos, blockEntity, null, ItemStack(Items.DIAMOND_PICKAXE).apply { addEnchantment(Enchantments.SILK_TOUCH, 1) })
-				env.world.breakBlock(pos, false)
+				val tool = ItemStack(Items.DIAMOND_PICKAXE)
+				tool.enchant(env.world.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SILK_TOUCH), 1)
+				Block.dropResources(state, env.world, pos, null, null, tool)
+				env.world.destroyBlock(pos, false)
 			}
 		}
 	}

@@ -1,18 +1,21 @@
 package miyucomics.hexical.features.media_jar
 
 import miyucomics.hexical.inits.HexicalBlocks
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.render.VertexConsumerProvider
-import net.minecraft.client.render.model.json.ModelTransformationMode
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.item.ItemStack
+import miyucomics.hexical.hexcompat.ItemStackDataCompat
+import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
+import net.minecraft.world.item.ItemDisplayContext
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.world.item.ItemStack
 
-object MediaJarItemRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
-	override fun render(stack: ItemStack, mode: ModelTransformationMode, matrices: MatrixStack, vertexConsumers: VertexConsumerProvider, light: Int, overlay: Int) {
-		MinecraftClient.getInstance().blockRenderManager.renderBlockAsEntity(HexicalBlocks.MEDIA_JAR_BLOCK.defaultState, matrices, vertexConsumers, light, overlay)
-		val tag = stack.nbt?.getCompound("BlockEntityTag")
-		val media = tag?.getLong("media") ?: 0
-		MediaJarRenderer.renderFluid(matrices, vertexConsumers, media.toFloat() / MediaJarBlock.MAX_CAPACITY.toFloat())
+class MediaJarItemRenderer : BlockEntityWithoutLevelRenderer(
+	Minecraft.getInstance().blockEntityRenderDispatcher,
+	Minecraft.getInstance().entityModels
+) {
+	override fun renderByItem(stack: ItemStack, mode: ItemDisplayContext, matrices: PoseStack, vertexConsumers: MultiBufferSource, light: Int, overlay: Int) {
+		Minecraft.getInstance().blockRenderer.renderSingleBlock(HexicalBlocks.MEDIA_JAR_BLOCK.defaultBlockState(), matrices, vertexConsumers, light, overlay)
+		val media = ItemStackDataCompat.blockEntityData(stack)?.getLong("media") ?: 0
+		MediaJarRenderStuffs.renderFluid(matrices, vertexConsumers, media.toFloat() / MediaJarBlock.MAX_CAPACITY.toFloat())
 	}
 }
