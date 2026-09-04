@@ -1,0 +1,88 @@
+{% include "hexcasting:index.css.jinja" %}
+
+* {
+    color: #cdd6f4;
+    border-color: #cdd6f4 !important;
+    line-height: 1.65 !important;
+}
+
+body {
+    background-color: #1e1e2e;
+}
+
+::selection {
+    background: #cba6f7;
+}
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+.page-header {
+    border-bottom: 1px solid #cdd6f4;
+}
+
+.navbar, .dropdown-menu {
+    background-color: #181825;
+    border: none;
+}
+
+.navbar-default .navbar-nav > .open > a, .navbar-default .navbar-nav > .open > a:focus, .navbar-default .navbar-nav > .open > a:hover {
+    background-color: #181825;
+}
+
+a {
+    color: #89b4fa !important;
+}
+
+a:hover {
+    color: #b4befe !important;
+}
+
+canvas.spell-viz {
+    --dot-color: #45475a;
+    --start-dot-color: #f38ba8;
+    --moving-dot-color: #89b4fa;
+    --path-color: #6c7086;
+    --visited-path-color: #b4befe;
+    --line-scale: 0.05;
+    --pause-text-scale: 0.25;
+    --moving-dot-scale: 0.1;
+}
+
+.transmuting-recipe {
+    position: relative;
+}
+
+.transmuting-background {
+	width: 256px;
+}
+
+.transmuting-input {
+    position: absolute;
+	left: 18px;
+	top: 74px;
+}
+
+.transmuting-output-1 {
+    position: absolute;
+    left: 112px;
+    top: 74px;
+}
+
+.transmuting-output-2 {
+    position: absolute;
+    left: 160px;
+    top: 74px;
+}
+
+.transmuting-output-3 {
+    position: absolute;
+    left: 208px;
+    top: 74px;
+}
+
+.cost-icon {
+	width: 32px;
+	height: 32px;
+}

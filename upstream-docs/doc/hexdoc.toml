@@ -1,0 +1,50 @@
+modid = "hexical"
+book = "hexcasting:thehexbook"
+default_lang = "en_us"
+default_branch = "main"
+
+resource_dirs = [
+    "resources",
+    "{_common.src}/main/resources",
+    "{_common.src}/main/generated",
+    { modid="hexcasting" },
+    { modid="hexpose" },
+    { modid="minecraft" },
+    { modid="hexdoc" },
+]
+export_dir = "src/hexdoc_hexical/_export/generated"
+
+[template]
+icon = "icon.png"
+include = [
+    "hexical",
+    "hexpose",
+    "hexcasting",
+    "hexdoc",
+]
+
+[template.args]
+mod_name = "Hexical"
+author = "miyucomics"
+show_landing_text = false
+
+[extra.hexcasting]
+_pattern_regex = { "!Raw" = 'register\("(?P<name>[^"]+)"?,\s"(?P<signature>[qweasd]+)",\sHexDir\.(?P<startdir>\w+)' }
+
+[textures.override]
+"hexical:amber_seal" = { texture="hexical:textures/item/amber_seal.png" }
+"hexical:gauntlet_staff" = { texture="hexical:textures/item/gauntlet_staff.png" }
+"hexical:lightning_rod_staff" = { texture="hexical:textures/item/lightning_rod_staff.png" }
+"hexical:media_jar" = { texture="hexical:textures/item/media_jar.png" }
+
+# doesn't really matter since they are never rendered
+"hexical:held_curio_flute" = { texture="hexical:textures/item/curio_flute.png" }
+"hexical:held_curio_handbell" = { texture="hexical:textures/item/curio_handbell.png" }
+
+[[extra.hexcasting.pattern_stubs]]
+path = "{^^^_common.package}/inits/HexicalActions.kt"
+regex = "{^_pattern_regex}"
+
+[_common]
+src = "../src"
+package = "{src}/main/java/miyucomics/hexical"

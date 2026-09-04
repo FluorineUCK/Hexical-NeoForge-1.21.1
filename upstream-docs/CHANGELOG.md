@@ -1,0 +1,408 @@
+# Changelog
+
+## 2.0.0
+- major version bump due to breaking changes
+- added driver dots
+  - driver dots are runtime macros in item form. They are named that way because I thought they were kind of like device drivers in computer science. There are four types for each of the four metals
+    - copper - programmed with a pattern, when that pattern is cast, it pushes the iotas it was given to the stack
+    - iron - programmed with a pattern, when that pattern is cast, the casting engine will cast its given hex
+    - gold - programmed with a pattern, when any pattern prefixed with it is cast, the casting engine will cast its given hex with the offending pattern on the stack
+    - netherite - programmed with a pattern, when any pattern uncaught by the previous variants is cast, the casting engine will cast its hex with the offending pattern on the stack
+- added strands
+  - like specks but for drawing 2D lines specifically
+  - specks will now only be used to render the iota text, jsut as it appears on the stack
+  - strands can take a list of vectors and they will draw it in space
+    - comes with a patttern to turn a pattern into a list of vectors for your convenience
+  - they can be made to wiggle
+- added amber seal spell
+  - mechanism cardboard box in a spell
+  - you can seal a block with a block entity, transport it elsewhere, and unwrap it
+- added mute spell to mute a mob, and added pattern to get whether a mob is currently muted
+- added babelbugs, cute little items that can intercept a message before it even leaves your window and process a hex on it
+- added block mimicry spells
+  - these spells mimic the behavior of blocks
+  - four spells to mimic the furnace, blast furnace, smoker, and campfire recipes, cost scales with time saved
+  - dispense spell, dispenses an item entity into the world
+  - piston spell, pushes a block in a direction, also works with slime and honey as expected
+  - stonecutter spell, takes an item stack and an intended item type and cuts it into that item type
+- added grok patterns to push and pull from staff stack
+- added tooltips to hexbursts
+- added tooltips to hextito
+- added spell to create a toast
+- added the itemmind, a single iota storage that any casting item or charmed holds, useful for remembering things between hexes
+- added lesser sentinels, just hexagons that you can conjure in the world to mark locations
+- added many different plushies for many different patterns
+- added pattern to detect greater sentinels around you, and a spell to destroy them
+- added Horrible
+  - it is quite horrible indeed, if you've looked at the pattern
+  - please use pattern manipulation to create it
+- added more prestidigitation effects
+- added 512 pattern cap to grimoires to prevent possible chunkbans from a hex automating adding millions of macros
+- added pedestals - holds your items for you!
+  - if used in a circle, it pushes the iota from the item on the pedestal
+- added curios - items designed to be charmed. They often have special animations and sound effects
+- added Conjure Flora spell - conjure flora of your choosing at a location, datapackable
+- added Spelunking Gambit - a cool pattern that returns the blocks along a direction, useful for scanning hexes
+- added Crack Device spell - crack an unwritten casting device which will reveal its Hex when eventually written
+- added spell to make a circle use a pedestal as its other hand
+- added Illuminate spell - conjure an invisible light of your chosen strength at a location
+- added Sparkle spell to create a sparkle ( my mod advertised in another mod!! )
+- added Zap spell - powers a block with Redstone for a duration, forces redstone power to be a certain level
+- added tooltip to grimoire for what patterns are registered, need to cast any grimoire pattern on old grimoires in order to force it to show up
+- added more prestidigitation effects, too many to document
+- added Projectiles chapter
+  - added Snowball spell for fun
+  - added Egg spell for fun
+  - moved Spit and Fireball here
+- added ability to use phials in wristpocket
+- added Squawk spell for fun - play mob sounds
+- added Confetti spell for fun - creates a bang and confetti particles in either a certain direction or in a radius
+- added media log - a strange item useful for debugging hexes in staves and casting devices
+- added Sentinel Bed from HexGloop - always have ambit inside it
+- added rotation spells for blocks and entities
+- added periwinkle, a flower that can only be created via Hexcasting
+  - obtained by casting a spell on sniffer
+  - it is the core ingredient of the Wooleyed potion
+    - added Wooleyed status effect
+      - acts as a coping saw
+  - it can be used to craft a lei
+    - lei gives a small little grid size boost but mostly just looks adorable
+    - you can right-click other players to put the lei on them
+- added Emi support for media jar
+- added two spells to break blocks with Fortune or Silk Touch
+- added more telepathy patterns
+  - added left and right-click telepathy patterns
+  - added telepathy pattern for scrolling, only works when you are holding telepathy because it cancels the scroll event
+  - added telepathy patterns to read other peoples' inputs, costs a bit of media to do it
+- added reflection to get evocation hex
+- added more documentation to Magic Missile
+- added Hex Candle cakes to complement Hex Candles
+- added Hex Gummies from HexGloop to complement the other conjurable edibles
+- added Charm - highly overpowered great spell that lets you turn any item into a cypher
+- added Casting Carpet - carpet that boosts your ambit a little
+- added pattern to test if an item stack has an autograph
+- added pattern to check if an item has been autographed by a specific person
+- added ability to read from hexburst with Scribe's Gambit or Chronicler's Gambit, which consumes the hexburst
+- added Chronicler's support for meshes and specks; replaces the old tangle purification, weave mesh, and iota speck spells
+- added an item cache that makes certain spells and processes that involve locating items much much faster
+- added depowered and powered textures for arch lamps to distinguish at an instant
+- added scrying overlay for mage blocks to determine what has been added to it
+- added many specialized Patchouli pages for some of the spells
+- added personal inventory management spells to eject, pull in, and move around items in your inventory slot
+- changed Displace to cost half a dust rather than free, people were making worldwide circles which was mildly scary
+- changed media jar
+  - custom recipe type to transmute items with media inside the jar, can be done in-world, via hopper, or by using it in your inventory like a bundle
+  - added beautiful lava lamp shader to media jars
+  - changed it to have a bigger collision and model
+- changed players to store wristpocket, evocation, and such data rather than stashing it in a global state
+- changed Wristpocket Reflection to return an item stack
+- changed hex candles to not be extinguished by water
+- changed Greater Blink to not move feet to eyes
+- changed lamps deactivating to only be when they are picked up
+- changed shader spells to no longer require a media jar
+- changed mage hand to no longer need a player, now conjures a fake player to do the work
+- changed mage hand to take a position and rotation, as well as a sneaking vector
+- changed mage hand and mage mouth to operate on items in the world rather than wristpocket
+- changed mage hand and mage mouth's patterns to loudly break due to their new behavior
+- changed pattern manipulation entirely to feel more like building a pattern
+- changed firework spell to use vectors for colors rather than dyes for more creativity
+- changed Conjure Spike cost from five dust to one dust
+- changed dye spell to be datapackable
+- changed cost of both hexburst and hextito conjuration to half a dust
+- changed various patterns to be more 'reasonable' now that I have more sensible pattern design
+- fixed bug where Chromatic Purification breaks for vectors
+- fixed bug where grimoire does not work when not in the hotbar, now it can be used in the inventory as well as ender chest
+- fixed lack of cost in Mage Hand documentation
+- fixed bug where Fireball would fly off in some random direction
+- fixed getting to document Ghast Fireball pushing an entity
+- fixed bug where wristpocket does not cancel the interaction when interacting with a block
+- fixed Greater Blink to not load chunks in between if chaining them, can now be used for long-distance teleportation
+- migrated scrying to Hexpose, which also adds more scrying patterns and is now a dependency of this mod
+- migrated metaeval patterns and soroban to Overevaluate, which also adds more metaevaluation patterns and iotas
+- migrated convenience features to User Hexperience
+  - walking in staff screen
+  - keybind to open spellbook
+  - writing to abacus
+- refactored code massively
+  - split sources, this should mean no more server errors ever again
+  - reorganized files into a neater system
+  - reworked the backends of so many systems to be elegant
+    - reworked dyeing backend
+    - reworked prestidigitation backend
+    - reworked mage block modifier backend
+- removed tchotchkes
+  - replaced by charms which have the exact same abilities but can be applied to any item
+- removed myodesopsia spell
+  - no one was even using it and it was inefficient and wasteful
+- removed mystification around lamps
+  - it was just a bit overdramatic and involved for an item that really isn't all that important to Hexical
+- removed limitation on one arch lamps per person and shared arch lamp state
+  - part of the demystification, also now you can have multiple arch lamps
+  - this did come with the side effect of having to remove the shared global state of arch lamps, which is a shame
+- removed Simulate Firework spell, just acted really strangely
+  - it had a bug and just seemed so incredibly niche, and I wanted to incentivize people to work with the complex firework spell
+- removed Pocket Reflection II
+  - now that it just returns an item stack iota, this seems unnecessary
+- removed Hallucinate Sound spells
+  - Special Efhexs now covers the niche of playing sounds and particles and such, so this felt unnecessary and didn't fit in with the rest of telepathy
+- removed animated scrolls
+  - strands now cover the niche of having a wiggling pattern in space (or a non-wiggling one!) and animated scrolls were just a mess code-wise
+
+## 1.5.0
+- added spell to conjure llama spit
+- added new telepathy pattern for sneaking
+  - done because the height method isn't always consistent such as swimming, flying with elyta, or standing under a slab
+  - also it's neat to get the first moment you sneaked or how long you've been sneaking for
+- added ability to open hex notebook with N, taken from HexGloop
+- added Classifier's Purification - get an iota type identifier to compare iota types
+- added environment scrying patterns to get details about your casting environment
+  - added pattern for getting whether something is in ambit
+  - added patterns for testing for the method it is being cast
+  - added pattern for off/mainhand use
+- added Redstone scrying patterns from Gloop
+- added Circadian Reflection for fraction of day gone by
+- added alternate texture for arch lamp when inactive
+- added my own take on pattern manipulation: turn a pattern into a list of numbers and back
+- added Tutu's Gambit - noop
+- added Garbage Reflection - pushes garbage
+- added Promote Lamp to upgrade hand lamp
+- changed Offer Mind to be just for recharging
+- changed Internalize Pigment II to be free
+- changed Sisyphus' Gambit to not restore the stack after each iteration
+- changed hexbursts and akashic bookshelf prestidigitation effect to be able to push into Introspection stack
+- changed wandering trader lamp trade chance to 50%
+- changed a lot of scrying to require ambit
+- changed Conjure Firework price to always be one shard
+- changed having multiple grimoires to not be useful anymore
+- changed lamp chapter to be open by default
+- changed Autograph to be a staff-only spell
+- changed conjured staffs to tchotchke
+- changed genie lamp namespace to hand lamp
+- changed grimoire storage format
+- changed locations of some patterns in the hexbook
+- changed Ghast Fireball to push the fireball entity
+- changed living scrolls to animated scrolls
+- changed Conjure Tchotchke to cost one charged amethyst now
+- changed tchotcke to push a list of booleans rather than just booleans straight onto the stack
+- changed soroban to work with the staff now
+- changed conjured compass to keep track of dimension
+- fixed arch genie lamps running in spectator
+- fixed bug that let you conjure meshes and specks even if you die for the cost
+- fixed bug that let you write truenames to lamps
+- overhauled documentation
+- readded shader spells
+- reverted purpose of media jar
+- refactored almost everything is rewritten to be more sane
+- removed Activate Archgenie and Deactivate Archgenie
+  - the reasoning for this is because they were coded horribly and removing them spared so much jank
+  - also you can modify their storage from outside so it'd just take a little more work to do the same thing
+- removed limit from tchotchke media
+- removed Chorus Blink due to not fitting in with classic spells
+- removed Similarity Purification in favor of iota type identifier
+- removed semi-permeable modifier from mage blocks because it doesn't quite fit in
+- update to 1.20.1
+
+## 1.4.0
+- added gauntlet staff
+- added advancement for conjuring Hexxy
+- added fun fortune telling feature to media jar
+- added a section of pigment patterns and a pigment iota
+- added Sleight: a wristpocket spell to either exchange an item entity with another, or conjure an item from your wristpocket
+- added two more patterns for affecting the top three iota of the stack, now you can arrange three iota in any way with a single pattern
+- added effect to magic missiles to set the velocity of a target hit to 0.6th of their own normalized velocity + a bit of upwards push
+- added prestidigitation support for shearing beehives and bee nests for honeycomb
+- added ability to dye specklikes with the Dye spell
+- added two more akashic utility patterns for clearing and getting the pattern of an akashic bookshelf
+- added one tick item pickup delay to conjured hextitos so hextito quines can properly function
+- added Autograph: signs the item in your offhand with your name and pigment, permanently
+- added Atalanta Gambit: skip to the next Thoth iteration; "continue"
+- added Castor's and Pollux's Gambits: should only be cast within a Thoth list, prepends or appends the top iota to Thoth's data list
+- added Conjure Fireball: conjures a ghast fireball with no velocity at a position within ambit for three dust
+- added pattern for changing the pigment of specks
+- added more quotes to documentation
+- changed Congruence Purification to consider orientation since Equality Distillation already considers the other case
+- changed akashic bookshelves to push to parenthesized list if there are unclosed Introspections
+- changed Chromatic Purification to allow item identifiers
+- changed mage block modifiers to update neighboring blocks
+- changed Offerings page to no longer require using up a lamp
+- changed evocation warmup period to one second
+- changed how Evoker's Purification works to be like all the other keybind patterns
+- changed Janus' Gambit to persist the Ravenmind, used in wisps
+- changed hand used for evocation to offhand if mainhand contains item
+- changed some documentation quotes to fit better
+- changed wristpocket to allow for Totem of Undying to function
+- fixed overpriced wristpocket
+- fixed magic missile phasing with things on its first tick
+- fixed Congruence Purification always returning true
+- fixed bug with mage blocks crashing with landing on them
+- fixed bug that made magic missile deal velocity damage, making it the cheapest railgun in existence
+- fixed a hacky workaround used by evocation where it replaces the player's hand. Now it directly takes from the inventory
+- fixed funky behavior with evocation and reading items, now it tries to read from the offhand then the mainhand
+- fixed Offer Mind spell allowing for overflow
+- fixed error in documentation: Racer's Purification can work on nonplayers
+- fixed error in documentation: Telepathy Reflection does not return null ever
+- fixed error in documentation: genie lamps can not cast Offer Mind
+- fixed oversight: plain glass and plain glass panes can now be dyed
+- made code much better
+  - gambits now have an interface so they are easy to add
+  - used lambdas rather than larger switch statements
+  - specklikes are now modularized
+- merged Arch Lamp Storage spells into the Arch Lamps page
+- removed cost from Reweave Mesh
+- removed limit on grimoires
+- removed ridiculous knockback from lightning rod staff
+- renamed one of the luminance purifications to Glow Purification
+
+## 1.3.2
+- changed keybind reflections to return -1 when not active
+- changed pattern for Caliper's Purification to not conflict with HexVR
+- changed some translations to fit on the page
+- changed Epiphany Reflection to Epiphany Purification, now takes in a player
+- changed Greater Blink to two dust to reward math
+- changed Displace to be *free*
+- changed Wristpocket to be an eighth of a dust rather than three dust
+- changed Conjure Compass to be three dust rather than a shard
+- fixed conjured staff's mirror disguise not being held properly
+- fixed evocation kicking every player outside of render distance
+- fixed media jar not dropping
+- fixed piercing raycasts not working because the identifier is in the wrong place
+- fixed special raycasts not returning the center of blocks but their corner instead
+- fixed translation error for identifier iota
+- fixed minor typos in documentation
+- fixed prestidigitation not working on sheep and pumpkins
+- fixed incorrect typing of wristpocket reflections in documentation
+
+## 1.3.1
+- fixed bug where magic missile would crash on servers
+- fixed documentation error where the description for Chorus Blink was separated from its pattern page
+- removed all shader spells because they didn't work with Create ( although it's totally Create's fault )
+
+## 1.3.0
+- added more advancements
+- added hexbursts - adds an iota to your stack when eaten
+- added hextitos - casts a hex using the player stack when eaten
+- added Theodolites' Purification - returns vector pointing up from a creeper's head
+- added Caliper's Purification - returns an entity's width
+- added Sekhmet's Gambit - clears the stack except the top n iota
+- colors
+  - added dye iota
+  - added Chromatic Purification and Dye spell to get and set dyes of blocks and entities
+  - added pattern to translate dyes into RGB vector
+  - added pattern to sample RGB vector at position
+  - added data-driven process to add color associations to blocks so you can add support for mods with simple datapacks
+- added Gasp spell - instantly refills your air bubbles for a dust
+- added evocation - enlightened players can cast spells by holding a keybind for some time
+- added internal iota storage to handheld lamp and patterns to interact with it
+- added Perlin Distillation - get quasi-random number corresponding to a location and time
+- added Similarity Distillation - get if two iota are of the same type
+- added Congruence Distillation - get if two patterns are the same, regardless of orientation
+- added Charge, Dodge, Retreat, and Evade Reflection patterns - pushes how long you've pressed the wasd keys
+- added Conjure Compass spell - conjure a compass that always points towards a location
+- added Conjure Spike spell - conjure an amethyst spike that will strike through a location after a customizable delay
+- added pyrotechnic spells
+  - added Conjure Firework spell - conjures a firework with a vast number of options and possibilities
+  - added Simulate Firework spell - conjures a firework based off the firework star in your offhand
+- added Magic Missile spell - fire silver of amethyst that deals knockback and weak damage
+- added Greater Blink spell - blink with a relative positional and rotational offset for much cheaper than GTP
+- added Prestidigitation spell - dozens of small magical effect on blocks and entities
+  - added data-driven process to add prestidigitation associations
+  - exposed registry for prestidigitation effects, allowing you to make an addon for custom magical effects
+- added Wristpocket spell - hide items magically
+  - added Ingest spell - eat wristpocketed item
+  - added Mage Hand spell - use your wristpocketed item to interact with blocks and entities
+- living scroll
+  - added spell to age living scrolls
+  - added spell to color a living scroll
+  - added spell to make living scroll parchment vanish
+  - added spell to make living scroll ink glow in the dark
+  - added medium living scrolls
+  - added ability to read from and write to living scrolls with Chronicler's
+- added a bunch of context checking patterns to get the current context of a hex is being cast in
+- added shader spells - alter your vision with an array of shaders for fun and for utility
+- added mishap to Chorus Blink if you don't have chorus fruit in your inventory
+- added semi-permeable mage block modifier: only the person who casted it can walk through them
+- added sprites for conjured staff
+- added a ton of world scrying patterns
+- added hex candles - amethyst candles whose flames take on the pigments of whomever last interacted with them
+- added meshes - similar to specks but they take in a list of vectors and connect them with pigmented lines
+- added decorative glowing media jar - don't drink it!
+- added Naval and Lilypad Distillation - raycast for fluids
+- added Railgun and Laser Exaltation - pierce regular blocks until hitting identifier block type
+- added Librarian's Purification and Gambit - write directly to akashic bookshelves without need for a record
+- added soroban patterns - keep and manipulate a constantly incrementing number, useful for recursion and Thoth's
+- added ability to right-click akashic bookshelves to download their iota onto your stack
+- added Epiphany Reflection - pushes whether the caster is enlightened
+- added Sentience Purification - pushes whether an entity has been flayed or null if not possible to flay
+- changed conjured staff sprite to be less messy
+- changed Identify pattern to have ambit limitation
+- changed speed and variance of living scroll patterns
+- changed specks to be one block big by default, can be scaled
+- changed some item scrying patterns to take item type identifiers instead
+- changed all the food scrying patterns to take item type identifiers instead
+- changed Miner's and Demoman's Purification to take block type identifiers instead
+  - moved them into separate blocks category
+- dropped support for Forge in order to prioritize development speed and features
+- fixed specks being slightly off-center
+- fixed living scrolls always having a pattern by default
+- fixed advancements occasionally breaking
+- fixed Conjure Speck spell costing too little
+- fixed Janus' Gambit to actually terminate the hex now
+- fixed archgenie lamps where it can cast for free if it wasn't in your main inventory
+- fixed conjured staff where inputs aren't always neatly intercepted and you can accidentally break blocks
+- fixed conjured staff bug where multiple clicks can make a lower rank staff do nothing
+- fixed bug that allowed conjured staffs to have infinite media
+- fixed Finale Reflection that always returned null
+- fixed specks crashing the client
+- optimize speck and living scroll rendering massively by caching patterns and verts
+- overhauled project structure completely
+- overhauled genie lamps completely and entirely
+- overhauled world scrying patterns
+- removed casting sounds from conjured staves
+- removed grimoire locking patterns since no one really used them, they were janky and risked leaking truenames, and there are hexbursts now
+- updated documentation
+- updated telepathy code to share code with movement reflections
+
+## 1.2.0
+- added more achievements
+- added Glyphmaker's Distillation - scrambles a pattern with a number as a seed
+- added lightning rod staff, with strong knockback and slow swing speed
+- added Displace spell for circles to teleport entities for cheap
+- added energized mage blocks modifier to emit Redstone power
+- added living scrolls
+- added proper speck text rendering
+- added more meta-evals
+    - added Janus' Gambit
+    - added Sisyphus' Gambit
+- added z-axis rotation for specks
+- added iota storage for conjured staves
+- added Dioscuri Gambit II
+- changed Conjure Speck to push the speck to the stack
+- changed Nephthys' Gambit to no longer need a number, instead relying on tail length
+- fixed accidental swapping of Sloth and Racer's Purification
+- fixed being able to use Recharge Item to recharge lamps
+- fixed conjured staves not casting properly
+- fixed mage block breaking particles
+- fixed Nephthys' Gambit not working on single patterns
+- fixed speck pattern saving
+- remove ambit requirement for altering specks
+- updated documentation
+- overhauled a lot of code
+- overhauled world scrying
+    - added enchantment patterns
+    - added entity patterns
+    - added food patterns
+    - added identifier patterns
+    - added item patterns
+    - added status effect patterns
+    - added world patterns
+
+## 1.1.0
+- added identifier iota
+- added `zh_cn` translation
+- added mishap to grimoire patterns if you are not holding a grimoire in your offhand
+- changed creative inventory lamps to have media by default
+- changed Conjure Staff to take in dust rather than media for battery
+- fixed telepathy crashing on servers
+
+## 1.0.0
+- Initial release, wooo!
